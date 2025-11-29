@@ -14,7 +14,7 @@ class CategoryAdmin(admin.ModelAdmin):
 class PostAdmin(admin.ModelAdmin):
     list_display = [
         "title",
-        "author",
+        "user",
         "category",
         "status",
         "visibility",
@@ -22,13 +22,13 @@ class PostAdmin(admin.ModelAdmin):
         "created_at",
     ]
     list_filter = ["status", "visibility", "category", "is_featured"]
-    search_fields = ["title", "content", "author__username"]
+    search_fields = ["title", "content", "user__username"]
     readonly_fields = ["slug", "view_count"]
     fields = [
         "title",
         "slug",
         "content",
-        "author",
+        "user",
         "category",
         "price",
         "quantity",

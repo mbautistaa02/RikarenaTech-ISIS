@@ -77,8 +77,8 @@ class PostImageSerializer(serializers.ModelSerializer):
         return value
 
 
-class AuthorSerializer(serializers.ModelSerializer):
-    """Simple serializer for post author"""
+class UserSerializer(serializers.ModelSerializer):
+    """Simple serializer for post owner"""
 
     class Meta:
         model = User
@@ -89,7 +89,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 class PostListSerializer(serializers.ModelSerializer):
     """Serializer for post list (marketplace feed)"""
 
-    author = AuthorSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     images = PostImageSerializer(many=True, read_only=True)
     total_value = serializers.ReadOnlyField()
@@ -101,7 +101,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "slug",
-            "author",
+            "user",
             "category",
             "images",
             "price",
@@ -122,7 +122,7 @@ class PostListSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "slug",
-            "author",
+            "user",
             "view_count",
             "created_at",
             "published_at",
@@ -134,10 +134,10 @@ class PostListSerializer(serializers.ModelSerializer):
 class PostDetailSerializer(serializers.ModelSerializer):
     """Complete serializer for posts (detail view)"""
 
-    author = AuthorSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     images = PostImageSerializer(many=True, read_only=True)
-    reviewed_by = AuthorSerializer(read_only=True)
+    reviewed_by = UserSerializer(read_only=True)
     total_value = serializers.ReadOnlyField()
     is_available = serializers.ReadOnlyField()
     is_sold = serializers.ReadOnlyField()
@@ -149,7 +149,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             "title",
             "content",
             "slug",
-            "author",
+            "user",
             "category",
             "price",
             "quantity",
@@ -175,7 +175,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "slug",
-            "author",
+            "user",
             "view_count",
             "created_at",
             "updated_at",
@@ -233,7 +233,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create post with automatic image uploads"""
         request = self.context["request"]
-        validated_data["author"] = request.user
+        validated_data["user"] = request.user
 
         # Get images from request FILES directly
         images = request.FILES.getlist("images") or request.FILES.getlist("images[]")

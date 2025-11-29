@@ -73,7 +73,7 @@ class Post(models.Model):
     slug = models.SlugField(unique=True, blank=True)
 
     # Relaciones
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="posts"
     )
@@ -121,10 +121,18 @@ class Post(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["status", "visibility"]),
-            models.Index(fields=["category", "status"]),
-            models.Index(fields=["author", "status"]),
-            models.Index(fields=["-created_at"]),
+            models.Index(
+                fields=["status", "visibility"], name="posts_post_status_18b052_idx"
+            ),
+            models.Index(
+                fields=["category", "status"], name="posts_post_categor_b4269f_idx"
+            ),
+            models.Index(
+                fields=["user", "status"], name="posts_post_user_status_idx"
+            ),
+            models.Index(
+                fields=["-created_at"], name="posts_post_created_183a3b_idx"
+            ),
         ]
 
     # Type hints for Django model fields and reverse relations
@@ -133,7 +141,7 @@ class Post(models.Model):
         images: QuerySet[PostImage]
 
     def __str__(self):
-        return f"{self.title} - {self.author.username}"
+        return f"{self.title} - {self.user.username}"
 
     def save(self, *args, **kwargs):
         # Auto-generate slug if it doesn't exist
@@ -173,7 +181,7 @@ class Post(models.Model):
     def can_be_edited_by(self, user):
         """Checks if a user can edit this post"""
         # Author can always edit
-        if self.author == user:
+        if self.user == user:
             return True
         # Moderators can edit any post
         return user.groups.filter(name="moderators").exists() or user.is_staff

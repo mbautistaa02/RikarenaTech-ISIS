@@ -69,7 +69,7 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
                 status=Post.StatusChoices.ACTIVE,
                 visibility=Post.VisibilityChoices.PUBLIC,
             )
-            .select_related("author", "category")
+            .select_related("user", "category")
             .prefetch_related("images")
         )
 
@@ -139,7 +139,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
         """Only authenticated user posts with manual filtering"""
         queryset = (
-            Post.objects.filter(author=self.request.user)
+            Post.objects.filter(user=self.request.user)
             .select_related("category")
             .prefetch_related("images")
         )
@@ -168,8 +168,8 @@ class UserPostViewSet(viewsets.ModelViewSet):
         return PostListSerializer
 
     def perform_create(self, serializer):
-        """Create post assigning the author"""
-        serializer.save(author=self.request.user)
+        """Create post assigning the current user"""
+        serializer.save(user=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -249,7 +249,7 @@ class PostModerationViewSet(viewsets.ModelViewSet):
 
     queryset = (
         Post.objects.all()
-        .select_related("author", "category", "reviewed_by")
+        .select_related("user", "category", "reviewed_by")
         .prefetch_related("images")
     )
     serializer_class = PostDetailSerializer
