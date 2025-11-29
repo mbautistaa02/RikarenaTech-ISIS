@@ -181,3 +181,12 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SOCIALACCOUNT_ADAPTER = 'AuthenticationProject.adapters.CustomSocialAccountAdapter'
+
+# Static files configuration
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Only include static directories that exist
+STATICFILES_DIRS = []
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
