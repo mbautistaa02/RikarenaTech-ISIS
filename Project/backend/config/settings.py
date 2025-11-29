@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "AuthenticationProject",  # Integracion con OAuth 2 con Google
     "posts.apps.PostsConfig",  # App de posts con configuración
+    "docs",  # API documentation with Swagger
     "rest_framework",
     "django.contrib.sites",
     "allauth",
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "rest_framework_simplejwt",
+    "drf_yasg",  # Swagger/OpenAPI documentation
 ]
 
 SITE_ID = 1
@@ -255,4 +257,3 @@ AWS_QUERYSTRING_AUTH = False
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 5  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = FILE_UPLOAD_MAX_MEMORY_SIZE
 FILE_UPLOAD_PERMISSIONS = 0o644
-

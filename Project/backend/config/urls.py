@@ -25,6 +25,8 @@ urlpatterns = [
     # Include app-level urls so /api/ routes resolve
     path("", include("AuthenticationProject.urls")),
     path("api/posts/", include("posts.urls")),
+    # API documentation
+    path("docs/", include("docs.urls")),
 ]
 
 # Serve static files during development
