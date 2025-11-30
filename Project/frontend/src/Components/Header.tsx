@@ -52,18 +52,41 @@ export const Header: React.FC = () => {
                             Mi perfil
                         </NavLink>
 
-                        <NavLink
-                            to="/create_post"
-                            className={({ isActive }) =>
-                                `text-sm font-[Inter] ${
-                                    isActive
-                                        ? "text-[#448502] font-semibold"
-                                        : "text-[#171A1F] hover:text-[#3C7602]"
-                                }`
-                            }
-                        >
-                            Crear Post
-                        </NavLink>
+                        {/* Botón con dropdown para crear */}
+                        <div className="relative group">
+                            <button className="text-sm font-[Inter] text-[#171A1F] hover:text-[#3C7602] transition flex items-center">
+                                Crear <span className="ml-1">▾</span>
+                            </button>
+
+                            {/* Dropdown */}
+                            <div className="absolute left-0 mt-2 w-40 bg-white shadow-md rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                                <NavLink
+                                    to="/create_post"
+                                    className={({ isActive }) =>
+                                        `block px-4 py-2 text-sm font-[Inter] transition ${
+                                            isActive
+                                                ? "text-[#448502] font-semibold"
+                                                : "text-[#171A1F] hover:bg-gray-100 hover:text-[#448502]"
+                                        }`
+                                    }
+                                >
+                                    Crear publicación
+                                </NavLink>
+
+                                <NavLink
+                                    to="/create_crop"
+                                    className={({ isActive }) =>
+                                        `block px-4 py-2 text-sm font-[Inter] transition ${
+                                            isActive
+                                                ? "text-[#448502] font-semibold"
+                                                : "text-[#171A1F] hover:bg-gray-100 hover:text-[#448502]"
+                                        }`
+                                    }
+                                >
+                                    Crear cultivo
+                                </NavLink>
+                            </div>
+                        </div>
 
                         <NavLink
                             to="/my_products"
@@ -75,9 +98,10 @@ export const Header: React.FC = () => {
                                 }`
                             }
                         >
-                            Mis productos
+                            Mis productos y cultivos
                         </NavLink>
                     </nav>
+
 
                 </div>
 

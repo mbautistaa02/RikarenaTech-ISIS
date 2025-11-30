@@ -6,6 +6,7 @@ import {Sellers} from "./pages/Sellers.tsx";
 import { Footer } from "./Components/Footer.tsx";
 import {Profile} from "./pages/Profile.tsx";
 import CreatePost from "./pages/CreatePost.tsx";
+import CreateCrop from "./pages/CreateCrop.tsx";
 import {MyProducts} from "./pages/MyProducts.tsx";
 import {ProductsBySeller} from "./pages/ProductsBySeller.tsx";
 import ProductDetails from  "./pages/ProductDetails.tsx";
@@ -25,6 +26,7 @@ function App() {
                         <Route path="/sellers" element={<Sellers />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/create_post" element={<CreatePost />} />
+                        <Route path="/create_crop" element={<CreateCrop />} />
                         <Route path="/my_products" element={<MyProducts />} />
                         <Route path="/products-by-seller/:id" element={<ProductsBySeller />} />
                         <Route path="/product_details/:id" element={<ProductDetails />} />
