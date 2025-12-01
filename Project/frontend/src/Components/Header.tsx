@@ -77,6 +77,21 @@ export const Header: React.FC = () => {
                         >
                             Mis productos
                         </NavLink>
+
+                        <NavLink
+                            to="/moderador"
+                            className={({ isActive }) =>
+                                `text-sm font-[Inter] ${
+                                    isActive
+                                        ? "text-[#448502] font-semibold"
+                                        : "text-[#171A1F] hover:text-[#3C7602]"
+                                }`
+                            }
+                        >
+                            Moderador
+                        </NavLink>
+
+
                     </nav>
 
                 </div>

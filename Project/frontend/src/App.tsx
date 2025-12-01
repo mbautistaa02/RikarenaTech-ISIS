@@ -10,6 +10,8 @@ import {MyProducts} from "./pages/MyProducts.tsx";
 import {ProductsBySeller} from "./pages/ProductsBySeller.tsx";
 import ProductDetails from  "./pages/ProductDetails.tsx";
 import {EditPost} from "./pages/EditPost.tsx";
+import PanelDeModerador from "./pages/PanelDeModerador.tsx";
+
 function App() {
     return (
         <Router>
@@ -29,6 +31,8 @@ function App() {
                         <Route path="/products-by-seller/:id" element={<ProductsBySeller />} />
                         <Route path="/product_details/:id" element={<ProductDetails />} />
                         <Route path="/edit_post/:id" element={<EditPost />} />
+                        <Route path="/moderador" element={<PanelDeModerador />} />
+
                     </Routes>
                 </main>
 
