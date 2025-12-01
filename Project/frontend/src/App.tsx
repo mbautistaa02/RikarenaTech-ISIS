@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "./ScrollToTop";
 import { Header } from "./Components/Header";
 import {Home} from "./pages/Home.tsx";
@@ -12,18 +12,22 @@ import {ProductsBySeller} from "./pages/ProductsBySeller.tsx";
 import ProductDetails from  "./pages/ProductDetails.tsx";
 import {EditPost} from "./pages/EditPost.tsx";
 import PanelDeModerador from "./pages/PanelDeModerador.tsx";
+import Alerts from "./pages/Alerts.tsx";
+
 
 function App() {
     return (
         <Router>
             <ScrollToTop />
             <div className="flex flex-col min-h-screen w-screen">
-                {/*  Header fijo arriba */}
-                 <Header />
+                <Header />
 
-                {/*  Contenido principal con padding superior */}
                 <main className="flex-grow pt-16">
                     <Routes>
+
+                        {/* 👉 Ruta para "/" */}
+                        <Route path="/" element={<Navigate to="/products" />} />
+
                         <Route path="/products" element={<Home />} />
                         <Route path="/sellers" element={<Sellers />} />
                         <Route path="/profile" element={<Profile />} />
@@ -33,12 +37,12 @@ function App() {
                         <Route path="/products-by-seller/:id" element={<ProductsBySeller />} />
                         <Route path="/product_details/:id" element={<ProductDetails />} />
                         <Route path="/edit_post/:id" element={<EditPost />} />
+                        <Route path="/alerts" element={<Alerts />} />
                         <Route path="/moderador" element={<PanelDeModerador />} />
 
                     </Routes>
                 </main>
 
-                {/*  Footer al final */}
                 <Footer />
             </div>
         </Router>
