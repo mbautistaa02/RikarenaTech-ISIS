@@ -28,6 +28,7 @@ urlpatterns = [
     # API documentation
     path("docs/", include("docs.urls")),
     path("api/", include("users.urls")),
+    path("api/", include("crops.urls")),
 ]
 
 # Serve static files during development
