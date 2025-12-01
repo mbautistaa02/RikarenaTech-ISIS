@@ -6,7 +6,7 @@ from rest_framework import permissions
 schema_view = get_schema_view(
     openapi.Info(
         title="RikarenaTech ISIS API",
-        default_version='v1',
+        default_version="v1",
         description="API documentation for RikarenaTech ISIS project",
         terms_of_service="https://www.google.com/policies/terms/",
         contact=openapi.Contact(email="contact@rikarenatech.com"),

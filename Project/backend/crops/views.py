@@ -17,6 +17,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     GET /api/products
     GET /api/products/{id}
     """
+
     queryset = Product.objects.all().order_by("name")
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
@@ -31,13 +32,21 @@ class CropViewSet(viewsets.ModelViewSet):
     PATCH /api/crops/{id} -> (futuro) editar si owner
     DELETE /api/crops/{id} -> (futuro) eliminar si owner
     """
+
     serializer_class = CropSerializer
     pagination_class = DefaultPagination
 
 
 def get_permissions(self):
     # Solo autenticados pueden interactuar con crops.
-    if self.action in ["create", "list", "retrieve", "update", "partial_update", "destroy"]:
+    if self.action in [
+        "create",
+        "list",
+        "retrieve",
+        "update",
+        "partial_update",
+        "destroy",
+    ]:
         base = [permissions.IsAuthenticated]
     else:
         base = [permissions.IsAuthenticated]
@@ -47,7 +56,6 @@ def get_permissions(self):
         return [perm() for perm in base]
 
 
-
 def get_queryset(self):
     """
     Seguridad por defecto: limitar al owner cuando se liste/lea desde este ViewSet.
@@ -55,4 +63,6 @@ def get_queryset(self):
     user = self.request.user
     if not user or not user.is_authenticated:
         return Crop.objects.none()
-    return Crop.objects.filter(user_id=getattr(user, "id", None)).order_by("-created_at")
+    return Crop.objects.filter(user_id=getattr(user, "id", None)).order_by(
+        "-created_at"
+    )

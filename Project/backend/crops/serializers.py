@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Product, Crop
 
+
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
@@ -13,30 +14,29 @@ class CropSerializer(serializers.ModelSerializer):
 
 
 class Meta:
-    
+
     model = Crop
     fields = [
-    "crop_id",
-    "user_id",
-    "product",
-    "start_date",
-    "harvest_date",
-    "area",
-    "crop_type",
-    "fertilizer_type",
-    "production_qty",
-    "irrigation_method",
-    "notes",
-    "created_at",
-    "updated_at",
+        "crop_id",
+        "user_id",
+        "product",
+        "start_date",
+        "harvest_date",
+        "area",
+        "crop_type",
+        "fertilizer_type",
+        "production_qty",
+        "irrigation_method",
+        "notes",
+        "created_at",
+        "updated_at",
     ]
-    
+
     read_only_fields = ["crop_id", "user_id", "created_at", "updated_at"]
 
 
-
 def validate(self, attrs):
-    
+
     start_date = attrs.get("start_date")
     harvest_date = attrs.get("harvest_date")
     area = attrs.get("area")
@@ -45,7 +45,9 @@ def validate(self, attrs):
     errors = {}
 
     if start_date and harvest_date and harvest_date < start_date:
-        errors["harvest_date"] = "La fecha de cosecha no puede ser anterior a la de siembra."
+        errors["harvest_date"] = (
+            "La fecha de cosecha no puede ser anterior a la de siembra."
+        )
 
     if area is None:
         errors["area"] = "La superficie (area) es obligatoria."
@@ -59,20 +61,23 @@ def validate(self, attrs):
 
     if errors:
         raise serializers.ValidationError(errors)
-    
+
     return attrs
 
 
-
 def create(self, validated_data):
-    
+
     request = self.context.get("request")
     if not request or not request.user or not request.user.is_authenticated:
-        raise serializers.ValidationError("Autenticación requerida para crear un cultivo.")
-    
+        raise serializers.ValidationError(
+            "Autenticación requerida para crear un cultivo."
+        )
+
     # Asociar el owner del registro desde el usuario autenticado
     validated_data["user_id"] = getattr(request.user, "id", None)
     if validated_data["user_id"] is None:
-        raise serializers.ValidationError("No fue posible identificar al usuario autenticado.")
-    
+        raise serializers.ValidationError(
+            "No fue posible identificar al usuario autenticado."
+        )
+
     return super().create(validated_data)

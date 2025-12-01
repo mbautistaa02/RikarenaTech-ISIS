@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "AuthenticationProject",  # Integracion con OAuth 2 con Google
     "posts.apps.PostsConfig",  # App de posts con configuración
+    "crops.apps.CropsConfig",  # App de posts con configuración
     "docs",  # API documentation with Swagger
     "rest_framework",
     "django.contrib.sites",

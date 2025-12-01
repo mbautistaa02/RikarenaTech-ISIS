@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
+
 class IsOwner(BasePermission):
     """
     Permite acceso solo si el objeto pertenece al usuario autenticado.
