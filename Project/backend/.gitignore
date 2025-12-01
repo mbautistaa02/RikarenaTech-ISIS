@@ -57,6 +57,11 @@ db.sqlite3-journal
 media/
 staticfiles/
 
+# Django migrations
+*/migrations/0*.py
+*/migrations/*.pyc
+!*/migrations/__init__.py
+
 # Flask
 instance/
 .webassets-cache

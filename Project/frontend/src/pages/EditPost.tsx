@@ -13,7 +13,7 @@ export function EditPost() {
     }, [id]);
     return (
         <div className="w-full min-h-screen bg-gray-50 px-8  flex flex-col">
-            <div className="w-full py-3 px-20">
+            <div className="w-full py-3 ">
                 <button onClick={() => navigate("/my_products")}
                         className="hidden sm:flex items-center justify-center px-4 py-2 h-9 rounded-md bg-[#448502] text-white text-sm font-medium hover:bg-[#3C7602] active:bg-[#2F5D01] font-[Inter] transition">
                     <span className="text-2xl">←</span>
@@ -28,7 +28,7 @@ export function EditPost() {
                     </h1>
 
                     {/* Contenedor principal */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 pb-20 gap-10">
 
 
                         {/* ----------- COLUMNA IZQUIERDA ----------- */}

@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import {Link} from "react-router-dom";
 
 export const Sellers = () => {
-    const [items, setItems] = useState([]);
+    const [sellers, setSellers] = useState([]);
 
     useEffect(() => {
         fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/sellers")
             .then(r => r.json())
-            .then(data => setItems(data));
+            .then(data => setSellers(data));
     }, []);
 
     return (
@@ -81,30 +81,30 @@ export const Sellers = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-8">
 
                     {/* Vendedores */}
-                    {items.map(item => (
+                    {sellers.map(seller => (
                         <div
-                            key={item["id"]}
+                            key={seller["id"]}
                             className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-center overflow-hidden"
                         >
                             {/* Imagen */}
                             <img
-                                src={item["avatar"] || "/farmer.png"}
-                                alt={item["name"]}
+                                src={seller["avatar"] || "/farmer.png"}
+                                alt={seller["name"]}
                                 className="w-30 h-30 rounded-full mt-4 object-cover"
                             />
 
                             {/* Contenido */}
                             <div className="mb-4 text-center">
                                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                    {item["name"]}
+                                    {seller["name"]}
                                 </h3>
 
                                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                                    {item["desc"]}
+                                    {seller["desc"]}
                                 </p>
 
                                 <Link
-                                    to={`/products-by-seller/${item["id"]}`}
+                                    to={`/products-by-seller/${seller["id"]}`}
                                     className="bg-white hover:bg-neutral-100 border border-neutral-300 active:bg-neutral-200 px-4 py-2 rounded-xl transition"
                                 >
                                     View products

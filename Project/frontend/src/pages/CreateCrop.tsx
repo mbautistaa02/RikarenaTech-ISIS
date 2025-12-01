@@ -1,5 +1,5 @@
 import {useState} from "react";
-export default function CreatePost() {
+export default function CreateCrop() {
     const [showImage, setShowImage] = useState<boolean>(false);
     return (
         <div className="w-full min-h-screen bg-gray-50 px-8  flex flex-col gap-10">
@@ -7,7 +7,7 @@ export default function CreatePost() {
 
                 {/* Título */}
                 <h1 className="font-[Outfit] text-[30px] font-bold text-neutral-900">
-                    Crear nuevo post de venta
+                    Crear nuevo cultivo
                 </h1>
 
                 {/* Contenedor principal */}
@@ -67,17 +67,17 @@ export default function CreatePost() {
                     <div className="bg-white shadow-sm border border-green-700 rounded-xl p-6">
 
                         <h2 className="font-[Outfit] text-[20px] font-semibold text-neutral-900">
-                            Información del post
+                            Información del cultivo
                         </h2>
 
                         <p className="font-[Inter] text-[14px] text-neutral-600 mt-2">
-                            Completa los detalles de tu publicación.
+                            Completa los detalles de tu cultivo.
                         </p>
 
                         {/* ----- Campo: Título ----- */}
                         <div className="mt-6 flex flex-col gap-1">
                             <label className="font-[Inter] text-sm font-medium text-neutral-900">
-                                Título
+                                Nombre
                             </label>
                             <input
                                 type="text"
@@ -111,11 +111,10 @@ export default function CreatePost() {
                         {/* ----- Campo: Precio ----- */}
                         <div className="mt-6 flex flex-col gap-1 relative">
                             <label className="font-[Inter] text-sm font-medium text-neutral-900">
-                                Precio
+                                Tipo de cultivo
                             </label>
 
                             <input
-                                type="number"
                                 className="
                 w-full h-[49px] px-9
                 bg-neutral-200/10 border border-neutral-300 rounded-md
@@ -123,11 +122,6 @@ export default function CreatePost() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
                             />
-
-                            {/* icono izquierda */}
-                            <span className="absolute left-3 top-[46px] font-bold text-neutral-600">
-              $
-            </span>
                         </div>
 
                         {/* ----- Label categoría ----- */}
@@ -152,6 +146,23 @@ export default function CreatePost() {
                             </select>
                         </div>
 
+                        {/* Campo: Detalles */}
+                        <div className="mt-6 flex flex-col gap-1">
+                            <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                                Detalles
+                            </label>
+
+                            <textarea
+                                                className="
+                                w-full h-[120px] px-3 py-2
+                                font-[Inter] text-sm text-neutral-900
+                                bg-neutral-200/10 border border-neutral-300 rounded-md
+                                hover:border-neutral-300
+                                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
+                              "
+                            />
+                        </div>
+
                         {/* ----- Botón crear post ----- */}
                         <button
                             className="
@@ -163,7 +174,7 @@ export default function CreatePost() {
               disabled:opacity-40 disabled:pointer-events-none
             "
                         >
-                            Crear publicación
+                            Crear cultivo
                         </button>
                     </div>
 

@@ -8,7 +8,6 @@ def home(request):
     return render(request, 'home.html')
 
 @api_view(['GET'])
-
 def get_jwt_token(request):
     if not request.user.is_authenticated:
         return Response({"error": "Please sign in first"}, status=401)
@@ -18,12 +17,3 @@ def get_jwt_token(request):
         'access': str(refresh.access_token),
     })
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def projects(request):
-    data = {
-        "message": "Welcome to the project collaboration API!",
-        "user": request.user.email,
-        "projects": ["Sample Project 1", "Sample Project 2"]
-    }
-    return Response(data)
