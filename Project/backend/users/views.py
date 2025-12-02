@@ -1,12 +1,13 @@
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.response import Response
+
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .serializers import ProfileSerializer, UserSerializer
-from django.contrib.auth.models import User
 from .models import Profile
+from .serializers import ProfileSerializer, UserSerializer
 
 
 class UserApiView(APIView):
@@ -14,7 +15,7 @@ class UserApiView(APIView):
 
     def get(self, request):
         """Return all active users with their profiles."""
-        users = User.objects.filter(is_active=True).select_related('profile')
+        users = User.objects.filter(is_active=True).select_related("profile")
         serializer = UserSerializer(users, many=True)
         return Response({"data": serializer.data}, status=status.HTTP_200_OK)
 
@@ -38,7 +39,9 @@ class ProfileDetailApiView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Profile updated", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "Profile updated", "data": serializer.data},
+                status=status.HTTP_200_OK,
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

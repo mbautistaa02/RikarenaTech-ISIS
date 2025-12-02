@@ -27,7 +27,7 @@ urlpatterns = [
     path("api/posts/", include("posts.urls")),
     # API documentation
     path("docs/", include("docs.urls")),
-    path('api/', include('users.urls')),
+    path("api/", include("users.urls")),
 ]
 
 # Serve static files during development

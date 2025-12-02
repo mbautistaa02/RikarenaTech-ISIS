@@ -1,5 +1,6 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
+
 
 class Profile(models.Model):
 
@@ -10,8 +11,5 @@ class Profile(models.Model):
     picture_url = models.URLField(max_length=200, blank=True, null=True)
 
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='profile'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
-

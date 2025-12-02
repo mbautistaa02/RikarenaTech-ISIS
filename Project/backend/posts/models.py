@@ -127,12 +127,8 @@ class Post(models.Model):
             models.Index(
                 fields=["category", "status"], name="posts_post_categor_b4269f_idx"
             ),
-            models.Index(
-                fields=["user", "status"], name="posts_post_user_status_idx"
-            ),
-            models.Index(
-                fields=["-created_at"], name="posts_post_created_183a3b_idx"
-            ),
+            models.Index(fields=["user", "status"], name="posts_post_user_status_idx"),
+            models.Index(fields=["-created_at"], name="posts_post_created_183a3b_idx"),
         ]
 
     # Type hints for Django model fields and reverse relations
