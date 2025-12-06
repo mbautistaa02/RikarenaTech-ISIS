@@ -14,9 +14,10 @@ class UserApiView(APIView):
 
     def get(self, request):
         """Return all active users with their profiles."""
+        
         users = User.objects.filter(is_active=True).select_related('profile')
         serializer = UserSerializer(users, many=True)
-        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserDetailApiView(APIView):
@@ -25,7 +26,7 @@ class UserDetailApiView(APIView):
     def get(self, request, pk):
         user = get_object_or_404(User, pk=pk, is_active=True)
         serializer = UserSerializer(user)
-        return Response({"data": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProfileDetailApiView(APIView):
