@@ -1,6 +1,7 @@
 from django.apps import AppConfig
 
 
-class PostConfig(AppConfig):
+class DocsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "post"
+    name = "docs"
+    verbose_name = "API Documentation"

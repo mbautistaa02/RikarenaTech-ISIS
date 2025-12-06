@@ -1,8 +1,23 @@
-from django.urls import path
-from .views import UserApiView, UserDetailApiView, ProfileDetailApiView
+from django.urls import include, path
+
+from rest_framework.routers import DefaultRouter
+
+from .views import (
+    ProfileDetailApiView,
+    SellerUserViewSet,
+    UserApiView,
+    UserDetailApiView,
+)
+
+# Router para endpoints con ViewSet
+router = DefaultRouter()
+router.register("sellers", SellerUserViewSet, basename="sellers")
 
 urlpatterns = [
-    path('users/', UserApiView.as_view()),
-    path('users/<int:pk>/', UserDetailApiView.as_view()),
-    path('users/<int:pk>/profile/', ProfileDetailApiView.as_view()),
+    # User management endpoints
+    path("", UserApiView.as_view(), name="users-list"),
+    path("<int:pk>/", UserDetailApiView.as_view(), name="user-detail"),
+    path("<int:pk>/profile/", ProfileDetailApiView.as_view(), name="user-profile"),
+    # Seller endpoints (ViewSet routes)
+    path("", include(router.urls)),
 ]

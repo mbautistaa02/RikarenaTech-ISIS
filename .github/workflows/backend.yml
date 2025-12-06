@@ -1,0 +1,72 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'Project/backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'Project/backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  lint-format-test:
+    name: Run Linting, Formatting and Django Tests on Backend
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: False
+      SECRET_KEY: "fake_key_for_ci"
+      AWS_ACCESS_KEY_ID: "fake_key"
+      AWS_SECRET_ACCESS_KEY: "fake_secret"
+      AWS_STORAGE_BUCKET_NAME: "fake_bucket"
+      AWS_S3_ENDPOINT_URL: "https://fake-endpoint"
+    container:
+      image: python:3.11.10
+    defaults:
+      run:
+        working-directory: Project/backend
+        shell: bash
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run isort (import sorting)
+      run: |
+        echo "::group::Import Sorting Check"
+        isort --check-only --diff .
+        echo "::endgroup::"
+    
+    - name: Run Black (code formatting)
+      run: |
+        echo "::group::Code Formatting Check"
+        black --check --diff .
+        echo "::endgroup::"
+    
+    - name: Run Flake8 (linting)
+      run: |
+        echo "::group::Linting Check"
+        flake8 .
+        echo "::endgroup::"
+    
+    - name: Run Migrations
+      run: |
+        python manage.py migrate --noinput
+    
+    - name: Run Django Tests
+      run: |
+        echo "::group::Django Tests"
+        python manage.py test --verbosity=2
+        echo "::endgroup::"
