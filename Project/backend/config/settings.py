@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "drf_yasg",  # Swagger/OpenAPI documentation
     "users.apps.UsersConfig",
+    "storages",  # Django-storages for automatic S3/R2 uploads
 ]
 
 SITE_ID = 1
@@ -258,3 +259,14 @@ AWS_QUERYSTRING_AUTH = False
 FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 5  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = FILE_UPLOAD_MAX_MEMORY_SIZE
 FILE_UPLOAD_PERMISSIONS = 0o644
+
+# Django-storages configuration for automatic S3/R2 uploads (Django 4.2+)
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+

@@ -21,7 +21,12 @@ from .serializers import (
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for categories - Read only
+    Read-only ViewSet for post categories.
+    
+    Supports:
+    - Search by name or description
+    - Filter main categories or subcategories
+    - Lookup by slug
     """
 
     queryset = Category.objects.filter(is_active=True)
@@ -29,9 +34,6 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "description"]
-
-    class Meta:
-        swagger_tags = ["Posts - Categories"]
 
     # Type hint for request property to help Pylance
     request: Request
@@ -54,8 +56,14 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for agricultural marketplace feed - Read only
-    Allows filtering by location, price, category, etc.
+    Read-only ViewSet for the agricultural marketplace feed.
+    
+    Features:
+    - Public access to active posts
+    - Search by title, content, location
+    - Filter by category, price range, location, unit
+    - Order by date, price, quantity
+    - View counter increment on detail view
     """
 
     serializer_class = PostListSerializer
@@ -70,19 +78,19 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["created_at", "price", "quantity", "published_at"]
     ordering = ["-published_at", "-created_at"]
 
-    class Meta:
-        swagger_tags = ["Posts - Marketplace"]
-
     # Type hint for request property to help Pylance
     request: Request
 
     def _get_decimal_param(self, name: str) -> Decimal | None:
-        """Parse decimal query params and raise 400 on invalid values"""
+        """Parse decimal query params and validate them."""
         value = self.request.query_params.get(name)
         if value is None:
             return None
         try:
-            return Decimal(value)
+            decimal_value = Decimal(value)
+            if decimal_value < 0:
+                raise serializers.ValidationError({name: "Must be a positive number."})
+            return decimal_value
         except (InvalidOperation, ValueError):
             raise serializers.ValidationError({name: "Must be a valid number."})
 
@@ -152,8 +160,13 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
 
 class UserPostViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for authenticated user posts
-    Allows full CRUD on own posts
+    Full CRUD ViewSet for authenticated user's posts.
+    
+    Features:
+    - Users can only manage their own posts
+    - Full CRUD operations (Create, Read, Update, Delete)
+    - Filter by status, visibility, category
+    - Automatic image upload via django-storages
     """
 
     permission_classes = [IsAuthenticated]
@@ -161,15 +174,16 @@ class UserPostViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "updated_at", "published_at"]
     ordering = ["-created_at"]
 
-    class Meta:
-        swagger_tags = ["Posts - User Management"]
-
     # Type hint for request property to help Pylance
     request: Request
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
-        """Only authenticated user posts with manual filtering"""
+        """Return posts belonging to the authenticated user."""
         if getattr(self, "swagger_fake_view", False):
+            return Post.objects.none()
+            
+        # Ensure user is authenticated
+        if not self.request.user.is_authenticated:
             return Post.objects.none()
         queryset = (
             Post.objects.filter(user=self.request.user)
@@ -200,14 +214,10 @@ class UserPostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return PostListSerializer
 
-    def perform_create(self, serializer):
-        """Create post assigning the current user"""
-        serializer.save(user=self.request.user)
+
 
     def destroy(self, request, *args, **kwargs):
-        """
-        Don't allow complete deletion, only change visibility
-        """
+        """Soft delete by setting visibility to private instead of actual deletion."""
         instance = self.get_object()
         instance.visibility = Post.VisibilityChoices.PRIVATE
         instance.save(update_fields=["visibility"])
@@ -215,13 +225,10 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def toggle_visibility(self, request, pk=None):
-        """
-        Toggle post visibility between public and private
-        """
+        """Toggle post visibility between public and private."""
         post = self.get_object()
 
-        current_visibility = post.visibility
-        if current_visibility == Post.VisibilityChoices.PUBLIC:
+        if post.visibility == Post.VisibilityChoices.PUBLIC:
             post.visibility = Post.VisibilityChoices.PRIVATE
         else:
             post.visibility = Post.VisibilityChoices.PUBLIC
@@ -233,9 +240,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def mark_as_sold(self, request, pk=None):
-        """
-        Mark product as sold
-        """
+        """Mark an active product as sold."""
         post = self.get_object()
 
         if post.status != Post.StatusChoices.ACTIVE:
@@ -252,9 +257,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def pause_listing(self, request, pk=None):
-        """
-        Pause product listing
-        """
+        """Pause/unpause an active product listing."""
         post = self.get_object()
 
         if post.status not in [Post.StatusChoices.ACTIVE, Post.StatusChoices.PAUSED]:
@@ -276,9 +279,14 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
 class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for post moderation - Read and update only, no creation
-    Only accessible by moderators and staff
-    Allows: GET (list/detail), PATCH (update), custom actions (approve/reject)
+    ViewSet for post moderation - restricted to moderators and staff.
+    
+    Features:
+    - Read and update posts (no creation/deletion)
+    - Approve/reject posts with review notes
+    - Activate approved posts
+    - Track reviewer information automatically
+    - Access control for moderators only
     """
 
     queryset = (
@@ -290,9 +298,6 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["created_at", "updated_at"]
     ordering = ["-created_at"]
-
-    class Meta:
-        swagger_tags = ["Posts - Moderation"]
 
     def get_permissions(self):
         """
@@ -311,9 +316,8 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
             request.user.groups.filter(name="moderators").exists()
             or request.user.is_staff
         ):
-            self.permission_denied(
-                request, message="Only moderators can access this function"
-            )
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only moderators can access this function.")
 
     def get_serializer_class(self):
         """Use moderation serializer for updates"""
@@ -339,15 +343,11 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
 
-    def perform_update(self, serializer):
-        """Update post and set reviewer information"""
-        serializer.save(reviewed_by=self.request.user, reviewed_at=timezone.now())
+
 
     @action(detail=True, methods=["patch"])
     def approve(self, request, pk=None):
-        """
-        Approve a post
-        """
+        """Approve a pending post for publication."""
         post = self.get_object()
         post.status = Post.StatusChoices.APPROVED
         post.reviewed_by = request.user
@@ -359,9 +359,7 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def reject(self, request, pk=None):
-        """
-        Reject a post
-        """
+        """Reject a post with optional review notes."""
         post = self.get_object()
         review_notes = request.data.get("review_notes", "")
 
@@ -378,9 +376,7 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def activate(self, request, pk=None):
-        """
-        Activate an approved product listing
-        """
+        """Activate an approved post for public viewing."""
         post = self.get_object()
 
         if post.status != Post.StatusChoices.APPROVED:
@@ -399,9 +395,7 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def pending_review(self, request):
-        """
-        Get posts pending review
-        """
+        """Get all posts pending moderation review."""
         posts = self.get_queryset().filter(status=Post.StatusChoices.PENDING_REVIEW)
 
         page = self.paginate_queryset(posts)

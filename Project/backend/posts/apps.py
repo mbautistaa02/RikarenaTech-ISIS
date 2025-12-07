@@ -21,11 +21,4 @@ class PostsConfig(AppConfig):
 
     def ready(self):
         """Ejecutar cuando la app esté lista"""
-        # Initialize S3 client when starting the application
-        from .services import s3_client
-
-        # The singleton is automatically initialized when imported
-        if s3_client.is_available:
-            print(f"✅ S3/R2 client ready: {s3_client.bucket_name}")
-        else:
-            print("⚠️  S3/R2 client not configured - using mock uploads")
+        pass

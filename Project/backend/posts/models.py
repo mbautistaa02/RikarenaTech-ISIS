@@ -202,7 +202,7 @@ class PostImage(models.Model):
     """Simple model for post images"""
 
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="images")
-    image_url = models.URLField(max_length=500)
+    image = models.ImageField(upload_to='posts/images/')
     alt_text = models.CharField(max_length=200, blank=True)
     caption = models.CharField(max_length=300, blank=True)
     order = models.PositiveIntegerField(default=0)

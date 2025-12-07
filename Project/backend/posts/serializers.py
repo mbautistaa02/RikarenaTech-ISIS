@@ -5,7 +5,6 @@ from rest_framework import serializers
 from users.models import Department, Municipality
 
 from .models import Category, Post, PostImage
-from .services import ImageUploadService
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -47,13 +46,13 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class PostImageSerializer(serializers.ModelSerializer):
-    """Serializer for post images stored in S3/Cloudflare R2"""
+    """Serializer for post images with automatic S3/R2 uploads"""
 
     class Meta:
         model = PostImage
         fields = [
             "id",
-            "image_url",
+            "image",
             "alt_text",
             "caption",
             "order",
@@ -66,16 +65,8 @@ class PostImageSerializer(serializers.ModelSerializer):
 
     def validate_order(self, value):
         """Validates that the order is unique per post"""
-        post = self.context.get("post")
-        if (
-            post
-            and PostImage.objects.filter(post=post, order=value)
-            .exclude(pk=self.instance.pk if self.instance else None)
-            .exists()
-        ):
-            raise serializers.ValidationError(
-                "An image with this order already exists for this post."
-            )
+        if value < 0:
+            raise serializers.ValidationError("Order must be a positive integer.")
         return value
 
 
@@ -230,12 +221,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
 
 class PostCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for creating and updating posts"""
-
-    def to_internal_value(self, data):
-        """Override to handle multipart form data"""
-
-        return super().to_internal_value(data)
+    """Serializer for creating and updating posts with automatic image handling"""
 
     class Meta:
         model = Post
@@ -252,41 +238,38 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        """Create post with automatic image uploads"""
+        """Create post with automatic image uploads via django-storages"""
+        from django.conf import settings
+        
         request = self.context["request"]
         validated_data["user"] = request.user
 
-        # Get images from request FILES directly
+        # Get images from request FILES
         images = request.FILES.getlist("images") or request.FILES.getlist("images[]")
+        
+        # Validate image count
+        if len(images) > settings.MAX_IMAGES_PER_POST:
+            raise serializers.ValidationError(
+                f"Too many images. Maximum {settings.MAX_IMAGES_PER_POST} allowed."
+            )
 
-        # Set initial status
+        # Set initial status based on user permissions
         user = request.user
         if user.groups.filter(name="moderators").exists() or user.is_staff:
             validated_data["status"] = Post.StatusChoices.ACTIVE
         else:
             validated_data["status"] = Post.StatusChoices.PENDING_REVIEW
 
-        # Create post first
+        # Create post
         post = Post.objects.create(**validated_data)
 
-        # Handle image uploads
+        # Create images - django-storages handles S3 upload automatically
         if images:
-            try:
-                service = ImageUploadService()
-                results = service.upload_images(post, images)
-
-                if results["success_count"] == 0 and results["failed_count"] > 0:
-                    post.delete()
-                    raise serializers.ValidationError(
-                        {
-                            "images": f"All image uploads failed: {results['failed_uploads'][0]['error']}"
-                        }
-                    )
-
-            except Exception as e:
-                post.delete()
-                raise serializers.ValidationError(
-                    {"images": f"Upload failed: {str(e)}"}
+            for index, image_file in enumerate(images):
+                PostImage.objects.create(
+                    post=post,
+                    image=image_file,
+                    order=index
                 )
 
         return post
