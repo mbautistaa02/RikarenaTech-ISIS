@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "drf_yasg",  # Swagger/OpenAPI documentation
     "users.apps.UsersConfig",
+    "alerts",
 ]
 
 SITE_ID = 1

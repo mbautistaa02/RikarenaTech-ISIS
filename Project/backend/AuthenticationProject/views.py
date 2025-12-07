@@ -4,8 +4,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+
 def home(request):
     return render(request, "home.html")
+
 
 @api_view(["GET"])
 def get_jwt_token(request):
