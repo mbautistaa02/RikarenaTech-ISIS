@@ -1,7 +1,5 @@
 from django.contrib.auth.models import User
-
 from rest_framework import serializers
-
 from .models import Profile
 
 
@@ -9,7 +7,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = "__all__"
+        exclude = ["id", "role", "picture_url", "user"]
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        exclude = ["password"]
+        exclude = ["id","password", "is_superuser", "is_staff", "user_permissions", "groups"]
 
 
 class SellerUserSerializer(serializers.ModelSerializer):

@@ -16,8 +16,9 @@ router.register("sellers", SellerUserViewSet, basename="sellers")
 urlpatterns = [
     # User management endpoints
     path("", UserApiView.as_view(), name="users-list"),
-    path("<int:pk>/", UserDetailApiView.as_view(), name="user-detail"),
-    path("<int:pk>/profile/", ProfileDetailApiView.as_view(), name="user-profile"),
+    path("<str:username>/", UserDetailApiView.as_view(), name="user-detail"),
+    path("<str:username>/profile/", ProfileDetailApiView.as_view(), name="user-profile"),
+    
     # Seller endpoints (ViewSet routes)
-    path("", include(router.urls)),
+    path("sellers/", include(router.urls)),
 ]

@@ -21,9 +21,10 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
+
     path("admin/", admin.site.urls),
     # Authentication endpoints
-    path("api/auth/", include("AuthenticationProject.urls")),
+    path("api/", include("AuthenticationProject.urls")),
     # App-specific API endpoints
     path("api/posts/", include("posts.urls")),
     path("api/users/", include("users.urls")),
