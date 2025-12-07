@@ -5,7 +5,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -138,44 +137,9 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     Read-only access to search and list sellers
     """
 
-    def patch(self, request, username):
-        # Ensure the user is updating their own profile
-        if request.user.username != username:
-            return Response(
-                {"detail": "You do not have permission to update this profile."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        # Allowed fields for update
-        allowed_fields = {
-            "cellphone_number",
-            "municipality",
-            "first_name",
-            "second_name",
-            "picture_url",
-        }
-
-        # Check if request contains only allowed fields
-        if not set(request.data.keys()).issubset(allowed_fields):
-            return Response(
-                {
-                    "detail": "You can only modify: cellphone_number, municipality, first_name, second_name, picture_url"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        profile = get_object_or_404(Profile, user__username=username)
-        serializer = ProfileSerializer(profile, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    permission_classes = [IsAuthenticated]
-
     serializer_class = SellerUserSerializer
+    permission_classes = []  # Public access
+    lookup_field = "username"  # Use username instead of id
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
         "username",
@@ -187,33 +151,29 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["active_posts_count", "latest_post_date", "username"]
     ordering = ["-latest_post_date"]
 
-    class Meta:
-        swagger_tags = ["Users - Sellers"]
-
-    # Type hint for request property
-    request: Request
-
     def get_queryset(self):  # type: ignore
         """
-        Return users who have at least one active post with statistics
+        Return users who have at least one active or approved post with statistics
         """
         # Add swagger detection to prevent schema generation errors
         if getattr(self, "swagger_fake_view", False):
             return User.objects.none()
 
+        # Include both ACTIVE and APPROVED posts
+        valid_statuses = [Post.StatusChoices.ACTIVE, Post.StatusChoices.APPROVED]
+
         queryset = (
             User.objects.filter(
                 is_active=True,
-                posts__status=Post.StatusChoices.ACTIVE,
+                posts__status__in=valid_statuses,
                 posts__visibility=Post.VisibilityChoices.PUBLIC,
-                profile__isnull=False,  # Solo usuarios con perfil
             )
             .select_related("profile")
             .annotate(
                 active_posts_count=Count(
                     "posts",
                     filter=Q(
-                        posts__status=Post.StatusChoices.ACTIVE,
+                        posts__status__in=valid_statuses,
                         posts__visibility=Post.VisibilityChoices.PUBLIC,
                     ),
                 ),
@@ -221,7 +181,7 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 latest_post_date=Max(
                     "posts__published_at",
                     filter=Q(
-                        posts__status=Post.StatusChoices.ACTIVE,
+                        posts__status__in=valid_statuses,
                         posts__visibility=Post.VisibilityChoices.PUBLIC,
                     ),
                 ),
@@ -232,6 +192,8 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
             .filter(active_posts_count__gt=0)
             .distinct()
         )
+
+        return queryset
 
         # Additional filtering
         category = self.request.query_params.get("category")
@@ -255,7 +217,7 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
     @action(detail=True, methods=["get"], url_path="posts")
-    def posts(self, request, pk=None):
+    def posts(self, request, username=None):
         """
         Get all active posts for a specific seller
         """

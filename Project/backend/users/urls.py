@@ -14,12 +14,13 @@ router = DefaultRouter()
 router.register("sellers", SellerUserViewSet, basename="sellers")
 
 urlpatterns = [
-    # User management endpoints
-    path("", UserApiView.as_view(), name="users-list"),
+    # User management endpoints - specific path to avoid router conflicts
+    path("all/", UserApiView.as_view(), name="users-list"),
+    # Seller endpoints (ViewSet routes)
+    path("", include(router.urls)),
+    # Username-based endpoints (must be after sellers to avoid conflicts)
     path("<str:username>/", UserDetailApiView.as_view(), name="user-detail"),
     path(
         "<str:username>/profile/", ProfileDetailApiView.as_view(), name="user-profile"
     ),
-    # Seller endpoints (ViewSet routes)
-    path("sellers/", include(router.urls)),
 ]
