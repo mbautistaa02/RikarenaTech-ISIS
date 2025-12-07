@@ -8,13 +8,12 @@ from io import BytesIO
 
 from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.db import IntegrityError
 
 from PIL import Image
-
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
