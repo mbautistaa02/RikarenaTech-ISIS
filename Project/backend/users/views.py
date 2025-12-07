@@ -168,7 +168,9 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 posts__status__in=valid_statuses,
                 posts__visibility=Post.VisibilityChoices.PUBLIC,
             )
-            .select_related("profile", "profile__municipality", "profile__municipality__department")
+            .select_related(
+                "profile", "profile__municipality", "profile__municipality__department"
+            )
             .annotate(
                 active_posts_count=Count(
                     "posts",
