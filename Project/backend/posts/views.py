@@ -1,7 +1,9 @@
-from django.db.models import F, QuerySet
+from decimal import Decimal, InvalidOperation
+
+from django.db.models import F, Q, QuerySet
 from django.utils import timezone
 
-from rest_framework import filters, permissions, status, viewsets
+from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -59,7 +61,12 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PostListSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title", "content", "location_city", "location_state"]
+    search_fields = [
+        "title",
+        "content",
+        "municipality__name",
+        "municipality__department__name",
+    ]
     ordering_fields = ["created_at", "price", "quantity", "published_at"]
     ordering = ["-published_at", "-created_at"]
 
@@ -69,14 +76,28 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     # Type hint for request property to help Pylance
     request: Request
 
+    def _get_decimal_param(self, name: str) -> Decimal | None:
+        """Parse decimal query params and raise 400 on invalid values"""
+        value = self.request.query_params.get(name)
+        if value is None:
+            return None
+        try:
+            return Decimal(value)
+        except (InvalidOperation, ValueError):
+            raise serializers.ValidationError({name: "Must be a valid number."})
+
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
         """Only public and active posts with agricultural filtering"""
+        now = timezone.now()
         queryset = (
             Post.objects.filter(
                 status=Post.StatusChoices.ACTIVE,
                 visibility=Post.VisibilityChoices.PUBLIC,
             )
-            .select_related("user", "category")
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .select_related(
+                "user", "category", "municipality", "municipality__department"
+            )
             .prefetch_related("images")
         )
 
@@ -86,22 +107,22 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(category_id=category)
 
         # Price range filtering
-        min_price = self.request.query_params.get("min_price")
-        if min_price:
+        min_price = self._get_decimal_param("min_price")
+        if min_price is not None:
             queryset = queryset.filter(price__gte=min_price)
 
-        max_price = self.request.query_params.get("max_price")
-        if max_price:
+        max_price = self._get_decimal_param("max_price")
+        if max_price is not None:
             queryset = queryset.filter(price__lte=max_price)
 
         # Location filtering
-        city = self.request.query_params.get("city")
-        if city:
-            queryset = queryset.filter(location_city__icontains=city)
+        municipality = self.request.query_params.get("municipality")
+        if municipality:
+            queryset = queryset.filter(municipality_id=municipality)
 
-        state = self.request.query_params.get("state")
-        if state:
-            queryset = queryset.filter(location_state__icontains=state)
+        department = self.request.query_params.get("department")
+        if department:
+            queryset = queryset.filter(municipality__department_id=department)
 
         # Unit of measure filtering
         unit = self.request.query_params.get("unit")
@@ -152,7 +173,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
             return Post.objects.none()
         queryset = (
             Post.objects.filter(user=self.request.user)
-            .select_related("category")
+            .select_related("category", "municipality", "municipality__department")
             .prefetch_related("images")
         )
 

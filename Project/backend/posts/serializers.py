@@ -2,9 +2,10 @@ from django.contrib.auth.models import User
 
 from rest_framework import serializers
 
+from users.models import Department, Municipality
+
 from .models import Category, Post, PostImage
 from .services import ImageUploadService
-from users.models import Department, Municipality
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -300,7 +301,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         # Add full category object instead of just ID
         if instance.category:
             data["category"] = CategorySerializer(instance.category).data
-        
+
         # Add full municipality object with department instead of just ID
         if instance.municipality:
             data["municipality"] = MunicipalitySerializer(instance.municipality).data

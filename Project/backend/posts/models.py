@@ -97,11 +97,11 @@ class Post(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_of_measure = models.CharField(max_length=50)  # kg, tons, boxes, etc.
     municipality = models.ForeignKey(
-        Municipality, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name="posts"
+        Municipality,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posts",
     )
 
     # Metadata
