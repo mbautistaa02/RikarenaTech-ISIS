@@ -33,9 +33,9 @@ class SellerUserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     active_posts_count = serializers.IntegerField(read_only=True)
     total_posts_count = serializers.IntegerField(read_only=True)
-    location_city = serializers.CharField(read_only=True)
-    location_state = serializers.CharField(read_only=True)
     latest_post_date = serializers.DateTimeField(read_only=True)
+    municipality_name = serializers.CharField(read_only=True)
+    department_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -48,7 +48,7 @@ class SellerUserSerializer(serializers.ModelSerializer):
             "profile",
             "active_posts_count",
             "total_posts_count",
-            "location_city",
-            "location_state",
             "latest_post_date",
+            "municipality_name",
+            "department_name",
         ]

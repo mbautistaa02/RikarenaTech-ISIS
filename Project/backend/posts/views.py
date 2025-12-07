@@ -22,7 +22,7 @@ from .serializers import (
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only ViewSet for post categories.
-    
+
     Supports:
     - Search by name or description
     - Filter main categories or subcategories
@@ -57,7 +57,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only ViewSet for the agricultural marketplace feed.
-    
+
     Features:
     - Public access to active posts
     - Search by title, content, location
@@ -161,7 +161,7 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
 class UserPostViewSet(viewsets.ModelViewSet):
     """
     Full CRUD ViewSet for authenticated user's posts.
-    
+
     Features:
     - Users can only manage their own posts
     - Full CRUD operations (Create, Read, Update, Delete)
@@ -181,7 +181,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
         """Return posts belonging to the authenticated user."""
         if getattr(self, "swagger_fake_view", False):
             return Post.objects.none()
-            
+
         # Ensure user is authenticated
         if not self.request.user.is_authenticated:
             return Post.objects.none()
@@ -213,8 +213,6 @@ class UserPostViewSet(viewsets.ModelViewSet):
         elif self.action == "retrieve":
             return PostDetailSerializer
         return PostListSerializer
-
-
 
     def destroy(self, request, *args, **kwargs):
         """Soft delete by setting visibility to private instead of actual deletion."""
@@ -280,7 +278,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
 class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for post moderation - restricted to moderators and staff.
-    
+
     Features:
     - Read and update posts (no creation/deletion)
     - Approve/reject posts with review notes
@@ -317,6 +315,7 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
             or request.user.is_staff
         ):
             from rest_framework.exceptions import PermissionDenied
+
             raise PermissionDenied("Only moderators can access this function.")
 
     def get_serializer_class(self):
@@ -324,6 +323,10 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action in ["update", "partial_update"]:
             return PostModerationSerializer
         return PostDetailSerializer
+
+    def perform_update(self, serializer):
+        """Persist updates and set reviewer metadata"""
+        serializer.save(reviewed_by=self.request.user, reviewed_at=timezone.now())
 
     def update(self, request, *args, **kwargs):
         """Allow moderators to update posts"""
@@ -342,8 +345,6 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         """Allow moderators to partially update posts"""
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
-
-
 
     @action(detail=True, methods=["patch"])
     def approve(self, request, pk=None):

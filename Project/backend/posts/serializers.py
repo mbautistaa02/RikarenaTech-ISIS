@@ -240,13 +240,13 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create post with automatic image uploads via django-storages"""
         from django.conf import settings
-        
+
         request = self.context["request"]
         validated_data["user"] = request.user
 
         # Get images from request FILES
         images = request.FILES.getlist("images") or request.FILES.getlist("images[]")
-        
+
         # Validate image count
         if len(images) > settings.MAX_IMAGES_PER_POST:
             raise serializers.ValidationError(
@@ -266,11 +266,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         # Create images - django-storages handles S3 upload automatically
         if images:
             for index, image_file in enumerate(images):
-                PostImage.objects.create(
-                    post=post,
-                    image=image_file,
-                    order=index
-                )
+                PostImage.objects.create(post=post, image=image_file, order=index)
 
         return post
 

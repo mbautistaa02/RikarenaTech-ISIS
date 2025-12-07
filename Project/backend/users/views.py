@@ -181,8 +181,8 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
         "username",
         "first_name",
         "last_name",
-        "posts__location_city",
-        "posts__location_state",
+        "posts__municipality__name",
+        "posts__municipality__department__name",
     ]
     ordering_fields = ["active_posts_count", "latest_post_date", "username"]
     ordering = ["-latest_post_date"]
@@ -197,6 +197,10 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Return users who have at least one active post with statistics
         """
+        # Add swagger detection to prevent schema generation errors
+        if getattr(self, "swagger_fake_view", False):
+            return User.objects.none()
+
         queryset = (
             User.objects.filter(
                 is_active=True,
@@ -221,9 +225,9 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                         posts__visibility=Post.VisibilityChoices.PUBLIC,
                     ),
                 ),
-                # Get the most frequent location from user's posts
-                location_city=Max("posts__location_city"),
-                location_state=Max("posts__location_state"),
+                # Get location from user's most recent post
+                municipality_name=Max("posts__municipality__name"),
+                department_name=Max("posts__municipality__department__name"),
             )
             .filter(active_posts_count__gt=0)
             .distinct()

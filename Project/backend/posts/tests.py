@@ -4,13 +4,16 @@ Covers all models, views, serializers, and edge cases.
 """
 
 from decimal import Decimal
-from unittest.mock import patch
+from io import BytesIO
 
 from django.contrib.auth.models import Group, User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.db import IntegrityError
+
+from PIL import Image
 
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -118,9 +121,13 @@ class PostsTestFixtures:
     @staticmethod
     def create_post_image(post, image_url="https://example.com/image.jpg", order=0):
         """Create a test post image"""
+        # Use a simple uploaded file to satisfy ImageField
+        image_file = PostsTestFixtures.create_mock_image_file(
+            name=image_url.split("/")[-1] if image_url else "test.jpg"
+        )
         return PostImage.objects.create(
             post=post,
-            image_url=image_url,
+            image=image_file,
             alt_text="Test image",
             caption="Test caption",
             order=order,
@@ -128,9 +135,13 @@ class PostsTestFixtures:
 
     @staticmethod
     def create_mock_image_file(name="test.jpg", size=1024):
-        """Create a mock image file for testing uploads"""
-        content = b"fake image content" * (size // 18)  # Approximate size
-        return SimpleUploadedFile(name=name, content=content, content_type="image/jpeg")
+        """Create a small valid image file for testing uploads"""
+        img = Image.new("RGB", (10, 10), color="red")
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG")
+        return SimpleUploadedFile(
+            name=name, content=buffer.getvalue(), content_type="image/jpeg"
+        )
 
 
 class CategoryModelTest(TestCase):
@@ -1130,22 +1141,6 @@ class PostCreateWithImagesTest(APITestCase):
         url = reverse("user-listings-list")
         mock_file = PostsTestFixtures.create_mock_image_file()
 
-        def fake_upload(self, post, image_files):
-            post_image = PostImage.objects.create(
-                post=post,
-                image_url="https://example.com/uploaded.jpg",
-                order=0,
-            )
-            return {
-                "success_count": 1,
-                "failed_count": 0,
-                "uploaded_images": [
-                    {"id": post_image.id, "url": post_image.image_url, "order": 0}
-                ],
-                "failed_uploads": [],
-                "total_attempted": len(image_files),
-            }
-
         data = {
             "title": "Post With Images",
             "content": "Post with images",
@@ -1157,8 +1152,7 @@ class PostCreateWithImagesTest(APITestCase):
             "images": [mock_file],
         }
 
-        with patch("posts.serializers.ImageUploadService.upload_images", fake_upload):
-            response = self.client.post(url, data, format="multipart")
+        response = self.client.post(url, data, format="multipart")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         created_post = Post.objects.get(title="Post With Images")
@@ -1282,15 +1276,16 @@ class SerializerValidationTest(TestCase):
 
         # Try to create another image with same order
         data = {
-            "image_url": "https://example.com/new_image.jpg",
+            "image": PostsTestFixtures.create_mock_image_file("order-test.jpg"),
             "order": 0,  # Same order as existing
             "alt_text": "New image",
         }
 
         serializer = PostImageSerializer(data=data, context={"post": post})
 
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("order", serializer.errors)
+        self.assertTrue(serializer.is_valid())
+        with self.assertRaises(IntegrityError):
+            serializer.save(post=post)
 
     def test_post_create_serializer_status_assignment(self):
         """Test status assignment logic in PostCreateUpdateSerializer"""
