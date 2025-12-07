@@ -138,7 +138,7 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     serializer_class = SellerUserSerializer
-    permission_classes = []  # Public access
+    permission_classes = [IsAuthenticated]
     lookup_field = "username"  # Use username instead of id
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
@@ -168,7 +168,7 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 posts__status__in=valid_statuses,
                 posts__visibility=Post.VisibilityChoices.PUBLIC,
             )
-            .select_related("profile")
+            .select_related("profile", "profile__municipality", "profile__municipality__department")
             .annotate(
                 active_posts_count=Count(
                     "posts",
@@ -185,9 +185,6 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                         posts__visibility=Post.VisibilityChoices.PUBLIC,
                     ),
                 ),
-                # Get location from user's most recent post
-                municipality_name=Max("posts__municipality__name"),
-                department_name=Max("posts__municipality__department__name"),
             )
             .filter(active_posts_count__gt=0)
             .distinct()
