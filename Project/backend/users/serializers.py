@@ -2,10 +2,13 @@ from django.contrib.auth.models import User
 
 from rest_framework import serializers
 
+from posts.serializers import MunicipalitySerializer
+
 from .models import Profile
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    municipality = MunicipalitySerializer(read_only=True)
 
     class Meta:
         model = Profile
@@ -34,8 +37,6 @@ class SellerUserSerializer(serializers.ModelSerializer):
     active_posts_count = serializers.IntegerField(read_only=True)
     total_posts_count = serializers.IntegerField(read_only=True)
     latest_post_date = serializers.DateTimeField(read_only=True)
-    municipality_name = serializers.CharField(read_only=True)
-    department_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -49,6 +50,4 @@ class SellerUserSerializer(serializers.ModelSerializer):
             "active_posts_count",
             "total_posts_count",
             "latest_post_date",
-            "municipality_name",
-            "department_name",
         ]
