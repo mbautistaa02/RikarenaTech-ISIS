@@ -17,8 +17,9 @@ urlpatterns = [
     # User management endpoints
     path("", UserApiView.as_view(), name="users-list"),
     path("<str:username>/", UserDetailApiView.as_view(), name="user-detail"),
-    path("<str:username>/profile/", ProfileDetailApiView.as_view(), name="user-profile"),
-    
+    path(
+        "<str:username>/profile/", ProfileDetailApiView.as_view(), name="user-profile"
+    ),
     # Seller endpoints (ViewSet routes)
     path("sellers/", include(router.urls)),
 ]

@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
+from users.models import Municipality
+
 if TYPE_CHECKING:
     from django.db.models import QuerySet
 
@@ -94,8 +96,13 @@ class Post(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_of_measure = models.CharField(max_length=50)  # kg, tons, boxes, etc.
-    location_city = models.CharField(max_length=100)
-    location_state = models.CharField(max_length=100)
+    municipality = models.ForeignKey(
+        Municipality,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="posts",
+    )
 
     # Metadata
     is_featured = models.BooleanField(default=False)

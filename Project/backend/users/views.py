@@ -11,17 +11,17 @@ from rest_framework.views import APIView
 
 from posts.models import Post
 from posts.serializers import PostListSerializer
+
 from .models import Profile
 from .serializers import ProfileSerializer, SellerUserSerializer, UserSerializer
 
 
 class UserApiView(APIView):
-    
     """Get all active users with their profiles"""
+
     permission_classes = [IsAuthenticated]
 
     def check_permissions(self, request):
-
         """
         Check if the user has permission to access this view.
         Only users in the 'moderators' group.
@@ -30,7 +30,8 @@ class UserApiView(APIView):
         super().check_permissions(request)
 
         if not (
-            request.user.groups.filter(name="moderators").exists() or request.user.is_staff
+            request.user.groups.filter(name="moderators").exists()
+            or request.user.is_staff
         ):
             self.permission_denied(
                 request,
@@ -57,15 +58,15 @@ class UserDetailApiView(APIView):
 
 
 class ProfileDetailApiView(APIView):
-
     """
     Update profile of a user
     Only the owner of the profile can update it
     """
+
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, username):
-        
+
         user = get_object_or_404(User, username=username, is_active=True)
 
         # Ensure the user is updating their own profile
@@ -74,7 +75,7 @@ class ProfileDetailApiView(APIView):
                 {"detail": "You do not have permission to update this profile."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-    
+
         # Allowed fields for update
         allowed_fields = {
             "cellphone_number",
@@ -84,15 +85,16 @@ class ProfileDetailApiView(APIView):
             "picture_url",
             "username",
         }
-        
+
         if not set(request.data.keys()).issubset(allowed_fields):
             return Response(
-                {"detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url"},
+                {
+                    "detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         profile = get_object_or_404(Profile, user__username=username)
-    
 
         profile_fields = {}
         user_fields = {}
@@ -102,14 +104,18 @@ class ProfileDetailApiView(APIView):
                 profile_fields[key] = value
             else:
                 user_fields[key] = value
-        
+
         # update PROFILE fields
         if profile_fields:
-            profile_serializer = ProfileSerializer(profile, data=profile_fields, partial=True)
+            profile_serializer = ProfileSerializer(
+                profile, data=profile_fields, partial=True
+            )
             if profile_serializer.is_valid():
                 profile_serializer.save()
             else:
-                return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
 
         # update USER fields
         if user_fields:
@@ -117,21 +123,21 @@ class ProfileDetailApiView(APIView):
             if user_serializer.is_valid():
                 user_serializer.save()
             else:
-                return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+                return Response(
+                    user_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
+
         # Devuelve el usuario completo actualizado
         full_user_serializer = UserSerializer(user)
         return Response(full_user_serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
-
     """
     ViewSet for users who are sellers (have published posts)
     Read-only access to search and list sellers
     """
+
     def patch(self, request, username):
         # Ensure the user is updating their own profile
         if request.user.username != username:
@@ -139,20 +145,28 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 {"detail": "You do not have permission to update this profile."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         # Allowed fields for update
-        allowed_fields = {"cellphone_number", "municipality", "first_name", "second_name", "picture_url"}
-        
+        allowed_fields = {
+            "cellphone_number",
+            "municipality",
+            "first_name",
+            "second_name",
+            "picture_url",
+        }
+
         # Check if request contains only allowed fields
         if not set(request.data.keys()).issubset(allowed_fields):
             return Response(
-                {"detail": "You can only modify: cellphone_number, municipality, first_name, second_name, picture_url"},
+                {
+                    "detail": "You can only modify: cellphone_number, municipality, first_name, second_name, picture_url"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         profile = get_object_or_404(Profile, user__username=username)
         serializer = ProfileSerializer(profile, data=request.data, partial=True)
-        
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -179,7 +193,7 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     # Type hint for request property
     request: Request
 
-    def get_queryset(self): # type: ignore
+    def get_queryset(self):  # type: ignore
         """
         Return users who have at least one active post with statistics
         """
