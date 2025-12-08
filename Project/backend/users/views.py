@@ -1,3 +1,22 @@
+"""
+Users API Views
+
+This module provides comprehensive user and seller management endpoints:
+
+SELLER ENDPOINTS (SellerUserViewSet):
+- GET /api/users/sellers/ - List all sellers with advanced filtering
+- GET /api/users/sellers/{username}/ - Get specific seller details
+- GET /api/users/sellers/{username}/posts/ - Get seller's posts with filtering
+
+USER MANAGEMENT ENDPOINTS:
+- GET /api/users/all/ - List all users (moderators only)
+- GET /api/users/{username}/ - Get any user's details
+- PATCH /api/users/{username}/profile/ - Update own profile
+
+All endpoints require authentication. Sellers are users with at least one active post.
+Supports extensive filtering, searching, and pagination for optimal performance.
+"""
+
 from django.contrib.auth.models import User
 from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404
@@ -45,12 +64,31 @@ class UserApiView(APIView):
 
 
 class UserDetailApiView(APIView):
+    """
+    Get detailed user information by username
+
+    Returns complete user information including profile details.
+    Available for any active user, not just sellers.
+
+    Path parameter:
+    - username: The user's unique username
+
+    Response includes:
+    - User basic info: id, username, first_name, last_name, email, date_joined, last_login
+    - Profile details: cellphone_number, role, municipality (with department), registration_date
+
+    Example usage:
+    - /api/users/{username}/
+
+    HTTP 200: Success with user details
+    HTTP 401: Authentication required
+    HTTP 404: User not found or inactive
+    """
 
     permission_classes = [IsAuthenticated]
 
-    """Get user detail by username with profile included"""
-
     def get(self, request, username):
+        """Get user detail by username with profile included"""
         user = get_object_or_404(User, username=username, is_active=True)
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -58,8 +96,38 @@ class UserDetailApiView(APIView):
 
 class ProfileDetailApiView(APIView):
     """
-    Update profile of a user
-    Only the owner of the profile can update it
+    Update user profile information
+
+    Allows users to update their own profile information including personal details
+    and location. Only the profile owner can make modifications.
+
+    Path parameter:
+    - username: The user's unique username (must match authenticated user)
+
+    Allowed fields for update:
+    - cellphone_number: User's phone number (integer)
+    - municipality: Municipality ID (foreign key)
+    - first_name: User's first name
+    - last_name: User's last name
+    - picture_url: Profile picture URL
+    - username: Change username
+
+    Example usage:
+    - PATCH /api/users/{username}/profile/
+
+    Example request body:
+    {
+        "cellphone_number": 3123456789,
+        "municipality": 1,
+        "first_name": "Juan",
+        "last_name": "Pérez"
+    }
+
+    HTTP 200: Profile updated successfully
+    HTTP 400: Invalid data or field restrictions violated
+    HTTP 401: Authentication required
+    HTTP 403: Cannot update another user's profile
+    HTTP 404: User not found
     """
 
     permission_classes = [IsAuthenticated]
@@ -135,6 +203,26 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for users who are sellers (have published posts)
     Read-only access to search and list sellers
+
+    Available filters:
+    - search: Full-text search across username, first_name, last_name, municipality, and department
+    - username: Filter by username (partial match, case-insensitive)
+    - name: Filter by username, first_name, or last_name (partial match, case-insensitive)
+    - category: Filter by post category ID
+    - municipality: Filter by municipality name or ID
+    - department: Filter by department name or ID
+    - min_posts: Filter by minimum number of active posts
+
+    Available ordering:
+    - active_posts_count: Number of active posts
+    - latest_post_date: Date of most recent post
+    - username: Username alphabetically
+
+    Example usage:
+    - /api/users/sellers/?username=juan
+    - /api/users/sellers/?search=bogota
+    - /api/users/sellers/?municipality=bogota&min_posts=5
+    - /api/users/sellers/?ordering=-active_posts_count
     """
 
     swagger_tags = ["Users - Sellers Directory"]
@@ -193,9 +281,14 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
             .distinct()
         )
 
-        return queryset
+        # Additional filtering by query parameters
 
-        # Additional filtering
+        # Filter by username (exact or partial match)
+        username = self.request.query_params.get("username")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+
+        # Filter by category
         category = self.request.query_params.get("category")
         if category:
             queryset = queryset.filter(posts__category_id=category)
@@ -209,17 +302,110 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(last_name__icontains=name)
             )
 
+        # Filter by municipality
+        municipality = self.request.query_params.get("municipality")
+        if municipality:
+            queryset = queryset.filter(
+                Q(profile__municipality__name__icontains=municipality)
+                | Q(profile__municipality__id=municipality)
+            )
+
+        # Filter by department
+        department = self.request.query_params.get("department")
+        if department:
+            queryset = queryset.filter(
+                Q(profile__municipality__department__name__icontains=department)
+                | Q(profile__municipality__department__id=department)
+            )
+
         # Filter by minimum posts count
         min_posts = self.request.query_params.get("min_posts")
         if min_posts:
-            queryset = queryset.filter(active_posts_count__gte=min_posts)
+            try:
+                min_posts_int = int(min_posts)
+                queryset = queryset.filter(active_posts_count__gte=min_posts_int)
+            except ValueError:
+                pass
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        ViewSet for users who are sellers (have published posts)
+        Read-only access to search and list sellers
+
+        Available filters:
+        - search: Full-text search across username, first_name, last_name, municipality, and department
+        - username: Filter by username (partial match, case-insensitive)
+        - name: Filter by username, first_name, or last_name (partial match, case-insensitive)
+        - category: Filter by post category ID
+        - municipality: Filter by municipality name or ID
+        - department: Filter by department name or ID
+        - min_posts: Filter by minimum number of active posts
+
+        Available ordering:
+        - active_posts_count: Number of active posts
+        - latest_post_date: Date of most recent post
+        - username: Username alphabetically
+
+        Example usage:
+        - /api/users/sellers/?username=juan
+        - /api/users/sellers/?search=bogota
+        - /api/users/sellers/?municipality=bogota&min_posts=5
+        - /api/users/sellers/?ordering=-active_posts_count
+        """
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Get detailed information for a specific seller by username
+
+        Returns complete seller information including profile and statistics.
+        Uses username as lookup field instead of ID for better API usability.
+
+        Path parameter:
+        - username: The seller's unique username
+
+        Response includes:
+        - Complete user information (id, username, first_name, last_name, email)
+        - Full profile details with municipality and department information
+        - Post statistics (active_posts_count, total_posts_count, latest_post_date)
+
+        HTTP 200: Success with seller details
+        HTTP 401: Authentication required
+        HTTP 404: Seller not found or has no active posts
+        """
+        return super().retrieve(request, *args, **kwargs)
 
     @action(detail=True, methods=["get"], url_path="posts")
     def posts(self, request, username=None):
         """
-        Get all active posts for a specific seller
+        Get all active posts for a specific seller by username
+
+        This endpoint returns all active and public posts created by the specified seller.
+        Supports filtering and ordering similar to the main marketplace.
+
+        Available filters:
+        - category: Filter by category ID
+        - min_price: Filter by minimum price (inclusive)
+        - max_price: Filter by maximum price (inclusive)
+        - city: Filter by city name (partial match, case-insensitive)
+
+        Available ordering:
+        - published_at: Date published (default: -published_at for newest first)
+        - price: Post price
+        - title: Post title alphabetically
+
+        Example usage:
+        - /api/users/sellers/{username}/posts/
+        - /api/users/sellers/{username}/posts/?category=1
+        - /api/users/sellers/{username}/posts/?min_price=50000&max_price=100000
+        - /api/users/sellers/{username}/posts/?city=bogota&ordering=price
+        - /api/users/sellers/{username}/posts/?ordering=-published_at
+
+        Returns:
+        - Paginated list of posts with images and category information
+        - Each post includes: id, title, description, price, images, category, location, dates
         """
         user = self.get_object()
 
