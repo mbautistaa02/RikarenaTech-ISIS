@@ -9,6 +9,7 @@ SELLER ENDPOINTS (SellerUserViewSet):
 - GET /api/users/sellers/{username}/posts/ - Get seller's posts with filtering
 
 USER MANAGEMENT ENDPOINTS:
+- GET /api/users/me/ - Get complete authenticated user profile with groups
 - GET /api/users/all/ - List all users (moderators only)
 - GET /api/users/{username}/ - Get any user's details
 - PATCH /api/users/{username}/profile/ - Update own profile
@@ -31,7 +32,12 @@ from posts.models import Post
 from posts.serializers import PostListSerializer
 
 from .models import Profile
-from .serializers import ProfileSerializer, SellerUserSerializer, UserSerializer
+from .serializers import (
+    CurrentUserSerializer,
+    ProfileSerializer,
+    SellerUserSerializer,
+    UserSerializer,
+)
 
 
 class UserApiView(APIView):
@@ -60,6 +66,74 @@ class UserApiView(APIView):
         """Return all active users with their profiles."""
         users = User.objects.filter(is_active=True).select_related("profile")
         serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CurrentUserApiView(APIView):
+    """Get complete profile for the authenticated user"""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Get complete profile information for the authenticated user
+
+        Returns comprehensive user information including all profile details,
+        groups, permissions, and location data. This endpoint provides everything
+        the authenticated user needs about their own account.
+
+        Response includes:
+        - User basic info: id, username, email, first_name, last_name
+        - Account status: is_active, is_staff, is_superuser, date_joined, last_login
+        - Complete profile: cellphone_number, role, municipality (with department), picture_url, dates
+        - Groups: All groups the user belongs to with id and name
+
+        Example usage:
+        - GET /api/users/me/
+
+        Example response:
+        {
+            "id": 1,
+            "username": "juan123",
+            "email": "juan@example.com",
+            "first_name": "Juan",
+            "last_name": "Pérez",
+            "is_active": true,
+            "is_staff": false,
+            "is_superuser": false,
+            "date_joined": "2024-01-15T10:30:00Z",
+            "last_login": "2024-12-08T14:20:00Z",
+            "profile": {
+                "id": 1,
+                "cellphone_number": 3123456789,
+                "role": "seller",
+                "registration_date": "2024-01-15T10:30:00Z",
+                "picture_url": "https://example.com/profile.jpg",
+                "bio": "Agricultor especializado en cultivos orgánicos con 10 años de experiencia.",
+                "municipality": {
+                    "id": 1,
+                    "name": "Bogotá",
+                    "department": {
+                        "id": 1,
+                        "name": "Cundinamarca"
+                    }
+                },
+                "created_at": "2024-01-15T10:30:00Z",
+                "updated_at": "2024-12-08T14:20:00Z"
+            },
+            "groups": [
+                {
+                    "id": 1,
+                    "name": "sellers"
+                }
+            ]
+        }
+
+        HTTP 200: Success with complete user profile
+        HTTP 401: Authentication required
+        """
+        user = request.user
+        serializer = CurrentUserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -111,8 +185,7 @@ class ProfileDetailApiView(APIView):
     - last_name: User's last name
     - picture_url: Profile picture URL
     - username: Change username
-
-    Example usage:
+    - bio: User biography/description (max 500 characters)    Example usage:
     - PATCH /api/users/{username}/profile/
 
     Example request body:
@@ -120,7 +193,8 @@ class ProfileDetailApiView(APIView):
         "cellphone_number": 3123456789,
         "municipality": 1,
         "first_name": "Juan",
-        "last_name": "Pérez"
+        "last_name": "Pérez",
+        "bio": "Agricultor especializado en cultivos orgánicos con 10 años de experiencia."
     }
 
     HTTP 200: Profile updated successfully
@@ -151,12 +225,13 @@ class ProfileDetailApiView(APIView):
             "last_name",
             "picture_url",
             "username",
+            "bio",
         }
 
         if not set(request.data.keys()).issubset(allowed_fields):
             return Response(
                 {
-                    "detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url"
+                    "detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url, username, bio"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -167,7 +242,7 @@ class ProfileDetailApiView(APIView):
         user_fields = {}
 
         for key, value in request.data.items():
-            if key in ["cellphone_number", "municipality"]:
+            if key in ["cellphone_number", "municipality", "bio"]:
                 profile_fields[key] = value
             else:
                 user_fields[key] = value

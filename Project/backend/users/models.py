@@ -9,6 +9,9 @@ class Profile(models.Model):
     role = models.CharField(max_length=50)
     registration_date = models.DateTimeField(auto_now_add=True)
     picture_url = models.URLField(max_length=200, blank=True, null=True)
+    bio = models.TextField(
+        max_length=500, blank=True, null=True, help_text="User biography or description"
+    )
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
