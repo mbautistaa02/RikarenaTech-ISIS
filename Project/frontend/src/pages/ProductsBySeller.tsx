@@ -1,26 +1,36 @@
 import { useEffect, useState } from "react";
-import {Link, useParams} from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-export const ProductsBySeller = () => {
-    const [items, setItems] = useState([]);
-    const { id } = useParams();
-    useEffect(() => {
-        fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/products")
-            .then(r => r.json())
-            .then(data => {
-                const filtered = data.filter((p: { sellerId: string | undefined; }) => p.sellerId === id);
-                setItems(filtered);
-            });
-    }, [id]);
+import {Link, useNavigate, useParams} from "react-router-dom";
 
+export const ProductsBySeller = () => {
+    const { username } = useParams();
     const [seller, setSeller] = useState(null);
     useEffect(() => {
-        // 2. Datos del vendedor
-        fetch(`https://6917819021a96359486d20a1.mockapi.io/api/v1/sellers/${id}`)
+        fetch(`http://localhost:8000/api/users/sellers/${username}/`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
             .then(r => r.json())
-            .then(data => setSeller(data));
-
-    }, [id]);
+            .then(data => {
+                if (data.success && data.data) {
+                    setSeller(data.data); // el objeto del producto
+                }
+            })
+    }, [username]);
+    const [items, setItems] = useState([]);
+    useEffect(() => {
+        fetch(`http://localhost:8000/api/users/sellers/${username}/posts/ `, {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+            .then(r => r.json())
+            .then(data => setItems(data));
+    }, [username]);
     const navigate = useNavigate();
     return (
 
@@ -40,17 +50,17 @@ export const ProductsBySeller = () => {
                         <div className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-center overflow-hidden">
                             <img
                                 src={seller["avatar"] || "/default-avatar.png"}
-                                alt={seller["name"]}
+                                alt={seller["username"]}
                                 className="w-32 h-32 rounded-full mt-4 object-cover"
                             />
 
                             <div className="mb-4 text-center">
                                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                    {seller["name"]}
+                                    {seller["username"]}
                                 </h3>
 
                                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2 ml-4 mr-4">
-                                    {seller["desc"]}
+                                    {seller["email"]}
                                 </p>
                             </div>
                         </div>
@@ -58,18 +68,18 @@ export const ProductsBySeller = () => {
 
                 </div>
             </div>
-            {/* Mis productos desde MockAPI */}
+            {/* Productos de vendedor con USERNAME */}
             <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
-                    {items.map(item => (
+                    {(items as any)?.data?.map((item: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                         <div
                             key={item["id"]}
                             className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
                         >
                             {/* Imagen */}
                             <img
-                                src={item["image"] || "/blueberry.png"}
+                                src={(item.images && item.images.length > 0 ? item.images[0].image : "/blueberry.png")}
                                 alt={item["name"]}
                                 className="w-full h-48 object-cover"
                             />
@@ -77,7 +87,7 @@ export const ProductsBySeller = () => {
                             {/* Contenido */}
                             <div className="p-4">
                                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                    {item["name"]}
+                                    {item["title"]}
                                 </h3>
 
                                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
@@ -95,7 +105,6 @@ export const ProductsBySeller = () => {
                                     >
                                         View product details
                                     </Link>
-
                                 </div>
                             </div>
                         </div>

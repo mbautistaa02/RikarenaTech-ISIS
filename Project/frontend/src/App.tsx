@@ -28,7 +28,7 @@ function App() {
                         <Route path="/create_post" element={<CreatePost />} />
                         <Route path="/create_crop" element={<CreateCrop />} />
                         <Route path="/my_products" element={<MyProducts />} />
-                        <Route path="/products-by-seller/:id" element={<ProductsBySeller />} />
+                        <Route path="/products-by-seller/:username" element={<ProductsBySeller />} />
                         <Route path="/product_details/:id" element={<ProductDetails />} />
                         <Route path="/edit_post/:id" element={<EditPost />} />
                     </Routes>

@@ -8,6 +8,7 @@ export default function ProductDetails() {
     const [sellerName, setSellerName] = useState(null);
     const [seller, setSeller] = useState(null);
     useEffect(() => {
+        console.log(id);
         fetch(`http://localhost:8000/api/posts/marketplace/${id}/`, {
             method: "GET",
             credentials: "include",

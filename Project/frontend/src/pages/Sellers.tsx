@@ -112,7 +112,7 @@ export const Sellers = () => {
                                 </p>
 
                                 <Link
-                                    to={`/products-by-seller/${seller["id"]}`}
+                                    to={`/products-by-seller/${seller["username"]}`}
                                     className="bg-white hover:bg-neutral-100 border border-neutral-300 active:bg-neutral-200 px-4 py-2 rounded-xl transition"
                                 >
                                     View products
