@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from decouple import config as env_config
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -74,7 +75,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "authentication",  # Integracion con OAuth 2 con Google
     "posts.apps.PostsConfig",  # App de posts con configuración
-    "crops.apps.CropsConfig",  # App de posts con configuración
     "docs",  # API documentation with Swagger
     "rest_framework",
     "django.contrib.sites",
@@ -86,6 +86,8 @@ INSTALLED_APPS = [
     "drf_yasg",  # Swagger/OpenAPI documentation
     "users.apps.UsersConfig",
     "storages",  # Django-storages for automatic S3/R2 uploads
+    "alerts.apps.AlertsConfig",
+    "crops.apps.CropsConfig",
 ]
 
 SITE_ID = 1
@@ -189,6 +191,10 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+# Where to send users after login/logout (frontend app)
+LOGIN_REDIRECT_URL = "http://localhost:5173/products"
+ACCOUNT_LOGOUT_REDIRECT_URL = "http://localhost:5173/"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "config.authentication.NoCSRFSessionAuthentication",
@@ -275,6 +281,7 @@ AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
 
 # Cloudflare R2 specific settings (comment out if using standard S3)
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
 AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")
 AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")
 
@@ -287,6 +294,7 @@ SUPPORTED_IMAGE_FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",  # 24 hours
 }
+
 AWS_DEFAULT_ACL = "public-read"
 AWS_S3_FILE_OVERWRITE = False
 AWS_QUERYSTRING_AUTH = False

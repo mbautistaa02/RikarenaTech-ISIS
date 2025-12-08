@@ -100,6 +100,36 @@ export const Header: React.FC = () => {
                         >
                             Mis productos y cultivos
                         </NavLink>
+
+                        <NavLink
+                        to="/alerts"
+                        className={({ isActive }) =>
+                            `text-sm font-[Inter] ${
+                            isActive
+                                ? "text-[#448502] font-semibold"
+                                : "text-[#171A1F] hover:text-[#3C7602]"
+                            }`
+                        }
+                        >
+                        Alertas
+                        </NavLink>
+
+
+
+                        <NavLink
+                            to="/moderador"
+                            className={({ isActive }) =>
+                                `text-sm font-[Inter] ${
+                                    isActive
+                                        ? "text-[#448502] font-semibold"
+                                        : "text-[#171A1F] hover:text-[#3C7602]"
+                                }`
+                            }
+                        >
+                            Moderador
+                        </NavLink>
+
+
                     </nav>
 
 
