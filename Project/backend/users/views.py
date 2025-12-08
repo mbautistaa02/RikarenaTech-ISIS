@@ -331,21 +331,28 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         """
-        List all sellers with filtering and search capabilities
+        ViewSet for users who are sellers (have published posts)
+        Read-only access to search and list sellers
 
-        Returns a paginated list of users who have published at least one active post.
-        Each seller includes profile information, statistics, and contact details.
+        Available filters:
+        - search: Full-text search across username, first_name, last_name, municipality, and department
+        - username: Filter by username (partial match, case-insensitive)
+        - name: Filter by username, first_name, or last_name (partial match, case-insensitive)
+        - category: Filter by post category ID
+        - municipality: Filter by municipality name or ID
+        - department: Filter by department name or ID
+        - min_posts: Filter by minimum number of active posts
 
-        Response includes:
-        - User basic info: id, username, first_name, last_name, email
-        - Profile: cellphone_number, municipality (with department), registration_date
-        - Statistics: active_posts_count, total_posts_count, latest_post_date
+        Available ordering:
+        - active_posts_count: Number of active posts
+        - latest_post_date: Date of most recent post
+        - username: Username alphabetically
 
-        Supports all filters and search options documented in the class docstring.
-        Results are paginated and ordered by latest_post_date by default.
-
-        HTTP 200: Success with paginated sellers list
-        HTTP 401: Authentication required
+        Example usage:
+        - /api/users/sellers/?username=juan
+        - /api/users/sellers/?search=bogota
+        - /api/users/sellers/?municipality=bogota&min_posts=5
+        - /api/users/sellers/?ordering=-active_posts_count
         """
         return super().list(request, *args, **kwargs)
 
