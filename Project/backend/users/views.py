@@ -22,6 +22,8 @@ from django.contrib.auth.models import User
 from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404
 
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -62,6 +64,12 @@ class UserApiView(APIView):
                 message="You do not have permission to access this resource.",
             )
 
+    @swagger_auto_schema(
+        operation_summary="List all active users",
+        operation_description="Lists active users with profile included. Requires moderator/staff.",
+        tags=["Users"],
+        responses={200: UserSerializer(many=True)},
+    )
     def get(self, request):
         """Return all active users with their profiles."""
         users = User.objects.filter(is_active=True).select_related("profile")
@@ -74,138 +82,90 @@ class CurrentUserApiView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Get my profile",
+        operation_description="Returns the complete profile for the authenticated user, including groups and location.",
+        tags=["Users"],
+        responses={200: CurrentUserSerializer},
+    )
     def get(self, request):
-        """
-        Get complete profile information for the authenticated user
-
-        Returns comprehensive user information including all profile details,
-        groups, permissions, and location data. This endpoint provides everything
-        the authenticated user needs about their own account.
-
-        Response includes:
-        - User basic info: id, username, email, first_name, last_name
-        - Account status: is_active, is_staff, is_superuser, date_joined, last_login
-        - Complete profile: cellphone_number, role, municipality (with department), picture_url, dates
-        - Groups: All groups the user belongs to with id and name
-
-        Example usage:
-        - GET /api/users/me/
-
-        Example response:
-        {
-            "id": 1,
-            "username": "juan123",
-            "email": "juan@example.com",
-            "first_name": "Juan",
-            "last_name": "Pérez",
-            "is_active": true,
-            "is_staff": false,
-            "is_superuser": false,
-            "date_joined": "2024-01-15T10:30:00Z",
-            "last_login": "2024-12-08T14:20:00Z",
-            "profile": {
-                "id": 1,
-                "cellphone_number": 3123456789,
-                "role": "seller",
-                "registration_date": "2024-01-15T10:30:00Z",
-                "picture_url": "https://example.com/profile.jpg",
-                "bio": "Agricultor especializado en cultivos orgánicos con 10 años de experiencia.",
-                "municipality": {
-                    "id": 1,
-                    "name": "Bogotá",
-                    "department": {
-                        "id": 1,
-                        "name": "Cundinamarca"
-                    }
-                },
-                "created_at": "2024-01-15T10:30:00Z",
-                "updated_at": "2024-12-08T14:20:00Z"
-            },
-            "groups": [
-                {
-                    "id": 1,
-                    "name": "sellers"
-                }
-            ]
-        }
-
-        HTTP 200: Success with complete user profile
-        HTTP 401: Authentication required
-        """
         user = request.user
         serializer = CurrentUserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserDetailApiView(APIView):
-    """
-    Get detailed user information by username
-
-    Returns complete user information including profile details.
-    Available for any active user, not just sellers.
-
-    Path parameter:
-    - username: The user's unique username
-
-    Response includes:
-    - User basic info: id, username, first_name, last_name, email, date_joined, last_login
-    - Profile details: cellphone_number, role, municipality (with department), registration_date
-
-    Example usage:
-    - /api/users/{username}/
-
-    HTTP 200: Success with user details
-    HTTP 401: Authentication required
-    HTTP 404: User not found or inactive
-    """
+    """Get detailed user information by username"""
 
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Get user by username",
+        operation_description="Returns user details (including profile) for an active user by username.",
+        tags=["Users"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Username of the user to retrieve.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={200: UserSerializer},
+    )
     def get(self, request, username):
-        """Get user detail by username with profile included"""
         user = get_object_or_404(User, username=username, is_active=True)
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProfileDetailApiView(APIView):
-    """
-    Update user profile information
-
-    Allows users to update their own profile information including personal details
-    and location. Only the profile owner can make modifications.
-
-    Path parameter:
-    - username: The user's unique username (must match authenticated user)
-
-    Allowed fields for update:
-    - cellphone_number: User's phone number (integer)
-    - municipality: Municipality ID (foreign key)
-    - first_name: User's first name
-    - last_name: User's last name
-    - picture_url: Profile picture URL
-    - username: Change username
-    - bio: User biography/description (max 500 characters)    Example usage:
-    - PATCH /api/users/{username}/profile/
-
-    Example request body:
-    {
-        "cellphone_number": 3123456789,
-        "municipality": 1,
-        "first_name": "Juan",
-        "last_name": "Pérez",
-        "bio": "Agricultor especializado en cultivos orgánicos con 10 años de experiencia."
-    }
-
-    HTTP 200: Profile updated successfully
-    HTTP 400: Invalid data or field restrictions violated
-    HTTP 401: Authentication required
-    HTTP 403: Cannot update another user's profile
-    HTTP 404: User not found
-    """
+    """Update user profile information"""
 
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Update my profile",
+        operation_description=(
+            "Allows a user to update their own profile. Only these fields are allowed: "
+            "`cellphone_number`, `municipality`, `first_name`, `last_name`, "
+            "`picture_url`, `username`, `bio`."
+        ),
+        tags=["Users"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Must match the authenticated user's username.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "cellphone_number": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Phone number",
+                ),
+                "municipality": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Municipality id",
+                ),
+                "first_name": openapi.Schema(type=openapi.TYPE_STRING),
+                "last_name": openapi.Schema(type=openapi.TYPE_STRING),
+                "picture_url": openapi.Schema(
+                    type=openapi.TYPE_STRING, format=openapi.FORMAT_URI
+                ),
+                "username": openapi.Schema(type=openapi.TYPE_STRING),
+                "bio": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="User bio or description",
+                ),
+            },
+            additional_properties=False,
+        ),
+        responses={200: UserSerializer},
+    )
     def patch(self, request, username):
 
         user = get_object_or_404(User, username=username, is_active=True)
@@ -275,32 +235,9 @@ class ProfileDetailApiView(APIView):
 
 
 class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet for users who are sellers (have published posts)
-    Read-only access to search and list sellers
+    """Read-only directory for users who are sellers (have public active posts)"""
 
-    Available filters:
-    - search: Full-text search across username, first_name, last_name, municipality, and department
-    - username: Filter by username (partial match, case-insensitive)
-    - name: Filter by username, first_name, or last_name (partial match, case-insensitive)
-    - category: Filter by post category ID
-    - municipality: Filter by municipality name or ID
-    - department: Filter by department name or ID
-    - min_posts: Filter by minimum number of active posts
-
-    Available ordering:
-    - active_posts_count: Number of active posts
-    - latest_post_date: Date of most recent post
-    - username: Username alphabetically
-
-    Example usage:
-    - /api/users/sellers/?username=juan
-    - /api/users/sellers/?search=bogota
-    - /api/users/sellers/?municipality=bogota&min_posts=5
-    - /api/users/sellers/?ordering=-active_posts_count
-    """
-
-    swagger_tags = ["Users - Sellers Directory"]
+    swagger_tags = ["Users - Sellers"]
     serializer_class = SellerUserSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = "username"  # Use username instead of id
@@ -404,84 +341,138 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
 
         return queryset
 
+    @swagger_auto_schema(
+        operation_summary="List seller users",
+        operation_description=(
+            "Lists users with at least one active/approved public post. Supports filtering by "
+            "username, name, category, municipality, department, min_posts and text search. "
+            "Ordering available by active_posts_count, latest_post_date, username."
+        ),
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Text search across username, first_name, last_name, municipality, department.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "username",
+                openapi.IN_QUERY,
+                description="Filter by username (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "name",
+                openapi.IN_QUERY,
+                description="Filter by username, first_name or last_name (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by post category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "municipality",
+                openapi.IN_QUERY,
+                description="Filter by municipality name or id.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "department",
+                openapi.IN_QUERY,
+                description="Filter by department name or id.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "min_posts",
+                openapi.IN_QUERY,
+                description="Minimum number of active posts.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by active_posts_count, latest_post_date, username (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: SellerUserSerializer(many=True)},
+    )
     def list(self, request, *args, **kwargs):
-        """
-        ViewSet for users who are sellers (have published posts)
-        Read-only access to search and list sellers
-
-        Available filters:
-        - search: Full-text search across username, first_name, last_name, municipality, and department
-        - username: Filter by username (partial match, case-insensitive)
-        - name: Filter by username, first_name, or last_name (partial match, case-insensitive)
-        - category: Filter by post category ID
-        - municipality: Filter by municipality name or ID
-        - department: Filter by department name or ID
-        - min_posts: Filter by minimum number of active posts
-
-        Available ordering:
-        - active_posts_count: Number of active posts
-        - latest_post_date: Date of most recent post
-        - username: Username alphabetically
-
-        Example usage:
-        - /api/users/sellers/?username=juan
-        - /api/users/sellers/?search=bogota
-        - /api/users/sellers/?municipality=bogota&min_posts=5
-        - /api/users/sellers/?ordering=-active_posts_count
-        """
         return super().list(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="Get seller by username",
+        operation_description="Returns seller details including profile and stats. Uses username as lookup.",
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Username of the seller to retrieve.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={200: SellerUserSerializer},
+    )
     def retrieve(self, request, *args, **kwargs):
-        """
-        Get detailed information for a specific seller by username
-
-        Returns complete seller information including profile and statistics.
-        Uses username as lookup field instead of ID for better API usability.
-
-        Path parameter:
-        - username: The seller's unique username
-
-        Response includes:
-        - Complete user information (id, username, first_name, last_name, email)
-        - Full profile details with municipality and department information
-        - Post statistics (active_posts_count, total_posts_count, latest_post_date)
-
-        HTTP 200: Success with seller details
-        HTTP 401: Authentication required
-        HTTP 404: Seller not found or has no active posts
-        """
         return super().retrieve(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="List posts by seller",
+        operation_description=(
+            "Returns public active posts for the specified seller. Supports filters by "
+            "`category`, `min_price`, `max_price`, `city` and ordering by `published_at`, "
+            "`price`, `title`."
+        ),
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Seller username.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "min_price",
+                openapi.IN_QUERY,
+                description="Minimum price (inclusive).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "max_price",
+                openapi.IN_QUERY,
+                description="Maximum price (inclusive).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "city",
+                openapi.IN_QUERY,
+                description="Filter by city (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by published_at, price or title (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: PostListSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="posts")
     def posts(self, request, username=None):
-        """
-        Get all active posts for a specific seller by username
-
-        This endpoint returns all active and public posts created by the specified seller.
-        Supports filtering and ordering similar to the main marketplace.
-
-        Available filters:
-        - category: Filter by category ID
-        - min_price: Filter by minimum price (inclusive)
-        - max_price: Filter by maximum price (inclusive)
-        - city: Filter by city name (partial match, case-insensitive)
-
-        Available ordering:
-        - published_at: Date published (default: -published_at for newest first)
-        - price: Post price
-        - title: Post title alphabetically
-
-        Example usage:
-        - /api/users/sellers/{username}/posts/
-        - /api/users/sellers/{username}/posts/?category=1
-        - /api/users/sellers/{username}/posts/?min_price=50000&max_price=100000
-        - /api/users/sellers/{username}/posts/?city=bogota&ordering=price
-        - /api/users/sellers/{username}/posts/?ordering=-published_at
-
-        Returns:
-        - Paginated list of posts with images and category information
-        - Each post includes: id, title, description, price, images, category, location, dates
-        """
         user = self.get_object()
 
         # Get user's active posts

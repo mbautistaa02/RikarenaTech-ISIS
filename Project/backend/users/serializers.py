@@ -46,6 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
             "user_permissions",
             "groups",
         ]
+        ref_name = "UsersUserSerializer"
 
 
 class SellerUserSerializer(serializers.ModelSerializer):

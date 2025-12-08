@@ -3,6 +3,8 @@ from decimal import Decimal, InvalidOperation
 from django.db.models import F, Q, QuerySet
 from django.utils import timezone
 
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +21,7 @@ from .serializers import (
 )
 
 
+@swagger_auto_schema(tags=["Posts - Categories"])
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only ViewSet for post categories.
@@ -39,6 +42,45 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     # Type hint for request property to help Pylance
     request: Request
 
+    @swagger_auto_schema(
+        operation_summary="List active categories",
+        operation_description=(
+            "Returns active categories. Supports search by name/description, filtering only root "
+            "categories via `main_only=true`, or children of a parent with `parent=<id>`."
+        ),
+        tags=["Posts - Categories"],
+        manual_parameters=[
+            openapi.Parameter(
+                "main_only",
+                openapi.IN_QUERY,
+                description="When true, only root categories (no parent) are returned.",
+                type=openapi.TYPE_BOOLEAN,
+            ),
+            openapi.Parameter(
+                "parent",
+                openapi.IN_QUERY,
+                description="Filter subcategories that belong to this parent category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Search by name or description.",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Get category detail",
+        operation_description="Retrieves category detail using `slug` as lookup.",
+        tags=["Posts - Categories"],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self) -> QuerySet[Category]:  # type: ignore
         """Filter main categories or subcategories"""
         queryset = super().get_queryset()
@@ -55,6 +97,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.order_by("name")
 
 
+@swagger_auto_schema(tags=["Posts - Marketplace"])
 class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Read-only ViewSet for the agricultural marketplace feed.
@@ -67,7 +110,7 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     - View counter increment on detail view
     """
 
-    swagger_tags = ["Posts - Public Feed"]
+    swagger_tags = ["Posts - Marketplace"]
     serializer_class = PostListSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -82,6 +125,76 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
 
     # Type hint for request property to help Pylance
     request: Request
+
+    @swagger_auto_schema(
+        operation_summary="List public posts",
+        operation_description=(
+            "Public marketplace feed. Supports search by title/content/location and filters by "
+            "category, price range, municipality, department, unit of measure and `is_featured`. "
+            "Ordering is available by date, price or quantity."
+        ),
+        tags=["Posts - Marketplace"],
+        manual_parameters=[
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "min_price",
+                openapi.IN_QUERY,
+                description="Minimum price (decimal).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "max_price",
+                openapi.IN_QUERY,
+                description="Maximum price (decimal).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "municipality",
+                openapi.IN_QUERY,
+                description="Filter by municipality id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "department",
+                openapi.IN_QUERY,
+                description="Filter by department id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "unit",
+                openapi.IN_QUERY,
+                description="Filter by unit of measure (substring match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "is_featured",
+                openapi.IN_QUERY,
+                description="When true, only featured posts are returned.",
+                type=openapi.TYPE_BOOLEAN,
+            ),
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Search by title, content or location.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by fields: created_at, price, quantity, published_at. Use '-' for desc.",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def _get_decimal_param(self, name: str) -> Decimal | None:
         """Parse decimal query params and validate them."""
@@ -151,6 +264,13 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
             return PostDetailSerializer
         return PostListSerializer
 
+    @swagger_auto_schema(
+        operation_summary="Retrieve public post",
+        operation_description=(
+            "Returns public post detail and increments the view counter."
+        ),
+        tags=["Posts - Marketplace"],
+    )
     def retrieve(self, request, *args, **kwargs):
         """Increment view counter when viewing a post"""
         instance = self.get_object()
@@ -160,6 +280,7 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
+@swagger_auto_schema(tags=["Posts - My Listings"])
 class UserPostViewSet(viewsets.ModelViewSet):
     """
     Full CRUD ViewSet for authenticated user's posts.
@@ -171,7 +292,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
     - Automatic image upload via django-storages
     """
 
-    swagger_tags = ["Posts - User Management"]
+    swagger_tags = ["Posts - My Listings"]
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["created_at", "updated_at", "published_at"]
@@ -179,6 +300,94 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     # Type hint for request property to help Pylance
     request: Request
+
+    @swagger_auto_schema(
+        operation_summary="List my posts",
+        operation_description=(
+            "Returns only posts that belong to the authenticated user. "
+            "Supports filters by `status`, `visibility`, `category` and ordering."
+        ),
+        tags=["Posts - My Listings"],
+        manual_parameters=[
+            openapi.Parameter(
+                "status",
+                openapi.IN_QUERY,
+                description="Filter by status (pending_review, approved, rejected, active, sold, paused, expired).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "visibility",
+                openapi.IN_QUERY,
+                description="Filter by visibility (public, private, unlisted).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by created_at, updated_at or published_at (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Create post",
+        operation_description=(
+            "Creates a post for the authenticated user. Writable fields: "
+            "`title`, `content`, `category`, `price`, `quantity`, `unit_of_measure`, "
+            "`municipality`, `visibility`, `expires_at`. Images are handled automatically "
+            "via django-storages using `images` or `images[]` in multipart form-data."
+        ),
+        tags=["Posts - My Listings"],
+        request_body=PostCreateUpdateSerializer,
+        responses={201: PostDetailSerializer},
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve my post",
+        operation_description="Returns the detail of a post that belongs to the authenticated user.",
+        tags=["Posts - My Listings"],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update post",
+        operation_description=(
+            "Full update of a user post. Replaces all writable fields: `title`, `content`, "
+            "`category`, `price`, `quantity`, `unit_of_measure`, `municipality`, `visibility`, "
+            "`expires_at`."
+        ),
+        tags=["Posts - My Listings"],
+        request_body=PostCreateUpdateSerializer,
+        responses={200: PostDetailSerializer},
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partial update post",
+        operation_description=(
+            "Partial update of a user post. Only provided fields are modified. "
+            "Accepted fields: `title`, `content`, `category`, `price`, `quantity`, "
+            "`unit_of_measure`, `municipality`, `visibility`, `expires_at`."
+        ),
+        tags=["Posts - My Listings"],
+        request_body=PostCreateUpdateSerializer,
+        responses={200: PostDetailSerializer},
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
         """Return posts belonging to the authenticated user."""
@@ -217,6 +426,14 @@ class UserPostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return PostListSerializer
 
+    @swagger_auto_schema(
+        operation_summary="Delete post (soft delete)",
+        operation_description=(
+            "Soft-delete: sets visibility to private instead of removing the record."
+        ),
+        tags=["Posts - My Listings"],
+        responses={204: "Deleted"},
+    )
     def destroy(self, request, *args, **kwargs):
         """Soft delete by setting visibility to private instead of actual deletion."""
         instance = self.get_object()
@@ -224,6 +441,13 @@ class UserPostViewSet(viewsets.ModelViewSet):
         instance.save(update_fields=["visibility"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Toggle visibility",
+        operation_description="Switches the post visibility between public and private.",
+        tags=["Posts - My Listings"],
+        request_body=None,
+    )
     @action(detail=True, methods=["patch"])
     def toggle_visibility(self, request, pk=None):
         """Toggle post visibility between public and private."""
@@ -239,6 +463,13 @@ class UserPostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Mark as sold",
+        operation_description="Marks an active product as sold. Only allowed when status is ACTIVE.",
+        tags=["Posts - My Listings"],
+        request_body=None,
+    )
     @action(detail=True, methods=["patch"])
     def mark_as_sold(self, request, pk=None):
         """Mark an active product as sold."""
@@ -256,6 +487,13 @@ class UserPostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Pause or resume listing",
+        operation_description="Pauses or reactivates a listing. Only works when status is ACTIVE or PAUSED.",
+        tags=["Posts - My Listings"],
+        request_body=None,
+    )
     @action(detail=True, methods=["patch"])
     def pause_listing(self, request, pk=None):
         """Pause/unpause an active product listing."""
@@ -278,6 +516,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@swagger_auto_schema(tags=["Posts - Moderation"])
 class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for post moderation - restricted to moderators and staff.
@@ -299,6 +538,30 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["created_at", "updated_at"]
     ordering = ["-created_at"]
+
+    @swagger_auto_schema(
+        operation_summary="List posts for moderation",
+        operation_description="Lists posts available to moderators, ordered by date.",
+        tags=["Posts - Moderation"],
+        manual_parameters=[
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by created_at or updated_at (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve post for moderation",
+        operation_description="Returns the detail of a post for moderator review.",
+        tags=["Posts - Moderation"],
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_permissions(self):
         """
@@ -331,6 +594,16 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         """Persist updates and set reviewer metadata"""
         serializer.save(reviewed_by=self.request.user, reviewed_at=timezone.now())
 
+    @swagger_auto_schema(
+        operation_summary="Update post in moderation",
+        operation_description=(
+            "Allows moderators to edit fields during review. Writable fields: "
+            "`status`, `visibility`, `is_featured`, `review_notes`."
+        ),
+        tags=["Posts - Moderation"],
+        request_body=PostModerationSerializer,
+        responses={200: PostDetailSerializer},
+    )
     def update(self, request, *args, **kwargs):
         """Allow moderators to update posts"""
         partial = kwargs.pop("partial", False)
@@ -344,11 +617,28 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_summary="Partial update in moderation",
+        operation_description=(
+            "Partially updates a post and logs the reviewing moderator. "
+            "Accepted fields: `status`, `visibility`, `is_featured`, `review_notes`."
+        ),
+        tags=["Posts - Moderation"],
+        request_body=PostModerationSerializer,
+        responses={200: PostDetailSerializer},
+    )
     def partial_update(self, request, *args, **kwargs):
         """Allow moderators to partially update posts"""
         kwargs["partial"] = True
         return self.update(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Approve post",
+        operation_description="Marks a post as approved and records the reviewer.",
+        tags=["Posts - Moderation"],
+        request_body=None,
+    )
     @action(detail=True, methods=["patch"])
     def approve(self, request, pk=None):
         """Approve a pending post for publication."""
@@ -361,6 +651,20 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Reject post",
+        operation_description="Rejects a post. You can include `review_notes` in the payload.",
+        tags=["Posts - Moderation"],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "review_notes": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Optional review notes."
+                )
+            },
+        ),
+    )
     @action(detail=True, methods=["patch"])
     def reject(self, request, pk=None):
         """Reject a post with optional review notes."""
@@ -378,6 +682,13 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Activate approved post",
+        operation_description="Activates an approved post and sets `published_at` if it was missing.",
+        tags=["Posts - Moderation"],
+        request_body=None,
+    )
     @action(detail=True, methods=["patch"])
     def activate(self, request, pk=None):
         """Activate an approved post for public viewing."""
@@ -397,6 +708,13 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(post)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        methods=["get"],
+        operation_summary="Pending review",
+        operation_description="Returns all posts with status `PENDING_REVIEW`.",
+        tags=["Posts - Moderation"],
+        request_body=None,
+    )
     @action(detail=False, methods=["get"])
     def pending_review(self, request):
         """Get all posts pending moderation review."""

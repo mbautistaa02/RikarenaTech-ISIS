@@ -17,7 +17,7 @@ class CustomSchemaGenerator(OpenAPISchemaGenerator):
                 "Posts - User Management",
                 "Posts - Moderation",
             ],
-            "Users": ["Users - Sellers Directory", "Users - Profile"],
+            "Users": ["Users - Sellers", "Users - Profile"],
             "Crops": ["Crops - Products", "Crops - Management"],
             "Alerts": ["Alerts - Notifications"],
         }
