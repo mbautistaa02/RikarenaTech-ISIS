@@ -3,15 +3,17 @@ Comprehensive middleware for handling errors and security
 """
 
 import logging
-from django.http import JsonResponse, Http404
-from django.utils import timezone
+
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from django.http import Http404, JsonResponse
+from django.utils import timezone
+
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotAuthenticated,
-    PermissionDenied as DRFPermissionDenied,
 )
+from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 logger = logging.getLogger(__name__)
 

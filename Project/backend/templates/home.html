@@ -6,9 +6,9 @@
   <h1>Sign In with Google</h1>
   {% if user.is_authenticated %}
     <p>Welcome, {{ user.first_name }}! <a href="/api/token/">Get JWT Token</a></p>
-    <p><a href="/auth/logout/">Logout</a></p>
+    <p><a href="/api/auth/logout/">Logout</a></p>
   {% else %}
-    <p><a href="/auth/google/login/?process=login">Sign In with Google</a></p>
+    <p><a href="/api/auth/google/login/?process=login">Sign In with Google</a></p>
   {% endif %}
 </body>
 </html>

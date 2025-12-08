@@ -1,6 +1,9 @@
-from django.db.models import F, QuerySet
+from decimal import Decimal, InvalidOperation
+
+from django.db.models import F, Q, QuerySet
 from django.utils import timezone
-from rest_framework import filters, permissions, status, viewsets
+
+from rest_framework import filters, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -18,7 +21,12 @@ from .serializers import (
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for categories - Read only
+    Read-only ViewSet for post categories.
+
+    Supports:
+    - Search by name or description
+    - Filter main categories or subcategories
+    - Lookup by slug
     """
 
     queryset = Category.objects.filter(is_active=True)
@@ -48,28 +56,56 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for agricultural marketplace feed - Read only
-    Allows filtering by location, price, category, etc.
+    Read-only ViewSet for the agricultural marketplace feed.
+
+    Features:
+    - Public access to active posts
+    - Search by title, content, location
+    - Filter by category, price range, location, unit
+    - Order by date, price, quantity
+    - View counter increment on detail view
     """
 
     serializer_class = PostListSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title", "content", "location_city", "location_state"]
+    search_fields = [
+        "title",
+        "content",
+        "municipality__name",
+        "municipality__department__name",
+    ]
     ordering_fields = ["created_at", "price", "quantity", "published_at"]
     ordering = ["-published_at", "-created_at"]
 
     # Type hint for request property to help Pylance
     request: Request
 
+    def _get_decimal_param(self, name: str) -> Decimal | None:
+        """Parse decimal query params and validate them."""
+        value = self.request.query_params.get(name)
+        if value is None:
+            return None
+        try:
+            decimal_value = Decimal(value)
+            if decimal_value < 0:
+                raise serializers.ValidationError({name: "Must be a positive number."})
+            return decimal_value
+        except (InvalidOperation, ValueError):
+            raise serializers.ValidationError({name: "Must be a valid number."})
+
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
         """Only public and active posts with agricultural filtering"""
+        now = timezone.now()
         queryset = (
             Post.objects.filter(
                 status=Post.StatusChoices.ACTIVE,
                 visibility=Post.VisibilityChoices.PUBLIC,
             )
-            .select_related("user", "category")
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+            .select_related(
+                "user", "category", "municipality", "municipality__department"
+            )
             .prefetch_related("images")
         )
 
@@ -79,22 +115,22 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(category_id=category)
 
         # Price range filtering
-        min_price = self.request.query_params.get("min_price")
-        if min_price:
+        min_price = self._get_decimal_param("min_price")
+        if min_price is not None:
             queryset = queryset.filter(price__gte=min_price)
 
-        max_price = self.request.query_params.get("max_price")
-        if max_price:
+        max_price = self._get_decimal_param("max_price")
+        if max_price is not None:
             queryset = queryset.filter(price__lte=max_price)
 
         # Location filtering
-        city = self.request.query_params.get("city")
-        if city:
-            queryset = queryset.filter(location_city__icontains=city)
+        municipality = self.request.query_params.get("municipality")
+        if municipality:
+            queryset = queryset.filter(municipality_id=municipality)
 
-        state = self.request.query_params.get("state")
-        if state:
-            queryset = queryset.filter(location_state__icontains=state)
+        department = self.request.query_params.get("department")
+        if department:
+            queryset = queryset.filter(municipality__department_id=department)
 
         # Unit of measure filtering
         unit = self.request.query_params.get("unit")
@@ -124,8 +160,13 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
 
 class UserPostViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for authenticated user posts
-    Allows full CRUD on own posts
+    Full CRUD ViewSet for authenticated user's posts.
+
+    Features:
+    - Users can only manage their own posts
+    - Full CRUD operations (Create, Read, Update, Delete)
+    - Filter by status, visibility, category
+    - Automatic image upload via django-storages
     """
 
     permission_classes = [IsAuthenticated]
@@ -137,10 +178,16 @@ class UserPostViewSet(viewsets.ModelViewSet):
     request: Request
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
-        """Only authenticated user posts with manual filtering"""
+        """Return posts belonging to the authenticated user."""
+        if getattr(self, "swagger_fake_view", False):
+            return Post.objects.none()
+
+        # Ensure user is authenticated
+        if not self.request.user.is_authenticated:
+            return Post.objects.none()
         queryset = (
             Post.objects.filter(user=self.request.user)
-            .select_related("category")
+            .select_related("category", "municipality", "municipality__department")
             .prefetch_related("images")
         )
 
@@ -167,14 +214,8 @@ class UserPostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return PostListSerializer
 
-    def perform_create(self, serializer):
-        """Create post assigning the current user"""
-        serializer.save(user=self.request.user)
-
     def destroy(self, request, *args, **kwargs):
-        """
-        Don't allow complete deletion, only change visibility
-        """
+        """Soft delete by setting visibility to private instead of actual deletion."""
         instance = self.get_object()
         instance.visibility = Post.VisibilityChoices.PRIVATE
         instance.save(update_fields=["visibility"])
@@ -182,13 +223,10 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def toggle_visibility(self, request, pk=None):
-        """
-        Toggle post visibility between public and private
-        """
+        """Toggle post visibility between public and private."""
         post = self.get_object()
 
-        current_visibility = post.visibility
-        if current_visibility == Post.VisibilityChoices.PUBLIC:
+        if post.visibility == Post.VisibilityChoices.PUBLIC:
             post.visibility = Post.VisibilityChoices.PRIVATE
         else:
             post.visibility = Post.VisibilityChoices.PUBLIC
@@ -200,9 +238,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def mark_as_sold(self, request, pk=None):
-        """
-        Mark product as sold
-        """
+        """Mark an active product as sold."""
         post = self.get_object()
 
         if post.status != Post.StatusChoices.ACTIVE:
@@ -219,9 +255,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def pause_listing(self, request, pk=None):
-        """
-        Pause product listing
-        """
+        """Pause/unpause an active product listing."""
         post = self.get_object()
 
         if post.status not in [Post.StatusChoices.ACTIVE, Post.StatusChoices.PAUSED]:
@@ -241,10 +275,16 @@ class UserPostViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PostModerationViewSet(viewsets.ModelViewSet):
+class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for post moderation
-    Only accessible by moderators and staff
+    ViewSet for post moderation - restricted to moderators and staff.
+
+    Features:
+    - Read and update posts (no creation/deletion)
+    - Approve/reject posts with review notes
+    - Activate approved posts
+    - Track reviewer information automatically
+    - Access control for moderators only
     """
 
     queryset = (
@@ -274,9 +314,9 @@ class PostModerationViewSet(viewsets.ModelViewSet):
             request.user.groups.filter(name="moderators").exists()
             or request.user.is_staff
         ):
-            self.permission_denied(
-                request, message="Only moderators can access this function"
-            )
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("Only moderators can access this function.")
 
     def get_serializer_class(self):
         """Use moderation serializer for updates"""
@@ -284,11 +324,31 @@ class PostModerationViewSet(viewsets.ModelViewSet):
             return PostModerationSerializer
         return PostDetailSerializer
 
+    def perform_update(self, serializer):
+        """Persist updates and set reviewer metadata"""
+        serializer.save(reviewed_by=self.request.user, reviewed_at=timezone.now())
+
+    def update(self, request, *args, **kwargs):
+        """Allow moderators to update posts"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Allow moderators to partially update posts"""
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
+
     @action(detail=True, methods=["patch"])
     def approve(self, request, pk=None):
-        """
-        Approve a post
-        """
+        """Approve a pending post for publication."""
         post = self.get_object()
         post.status = Post.StatusChoices.APPROVED
         post.reviewed_by = request.user
@@ -300,9 +360,7 @@ class PostModerationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def reject(self, request, pk=None):
-        """
-        Reject a post
-        """
+        """Reject a post with optional review notes."""
         post = self.get_object()
         review_notes = request.data.get("review_notes", "")
 
@@ -319,9 +377,7 @@ class PostModerationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["patch"])
     def activate(self, request, pk=None):
-        """
-        Activate an approved product listing
-        """
+        """Activate an approved post for public viewing."""
         post = self.get_object()
 
         if post.status != Post.StatusChoices.APPROVED:
@@ -340,9 +396,7 @@ class PostModerationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def pending_review(self, request):
-        """
-        Get posts pending review
-        """
+        """Get all posts pending moderation review."""
         posts = self.get_queryset().filter(status=Post.StatusChoices.PENDING_REVIEW)
 
         page = self.paginate_queryset(posts)

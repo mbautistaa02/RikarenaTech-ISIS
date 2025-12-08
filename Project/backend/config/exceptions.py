@@ -2,19 +2,21 @@
 Comprehensive exception handler for Django REST Framework
 """
 
-from django.utils import timezone
-from rest_framework.views import exception_handler
-from rest_framework.exceptions import (
-    ValidationError,
-    AuthenticationFailed,
-    PermissionDenied,
-    NotFound,
-    MethodNotAllowed,
-    Throttled,
-    ParseError,
-)
-from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 import logging
+
+from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.utils import timezone
+
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    MethodNotAllowed,
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
+from rest_framework.views import exception_handler
 
 logger = logging.getLogger(__name__)
 

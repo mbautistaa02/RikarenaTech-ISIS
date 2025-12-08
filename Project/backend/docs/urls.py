@@ -1,4 +1,5 @@
 from django.urls import path
+
 from .views import schema_view
 
 app_name = "docs"

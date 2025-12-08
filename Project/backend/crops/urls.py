@@ -10,8 +10,8 @@ from .views import (
 router = DefaultRouter()
 
 # Register CRUD endpoints
-router.register("products", ProductViewSet, basename="products")
-router.register("crops", CropViewSet, basename="crops")
+router.register("", CropViewSet, basename="")
+router.register("products/", ProductViewSet, basename="products")
 
 urlpatterns = [
     path("", include(router.urls)),
