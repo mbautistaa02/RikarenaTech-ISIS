@@ -51,5 +51,4 @@ class SellerUserSerializer(serializers.ModelSerializer):
             "latest_post_date",
             "municipality_name",
             "department_name",
-            "description",  # New Field for sellers
         ]
