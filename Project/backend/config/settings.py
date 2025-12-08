@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "AuthenticationProject",  # Integracion con OAuth 2 con Google
+    "authentication",  # Integracion con OAuth 2 con Google
     "posts.apps.PostsConfig",  # App de posts con configuración
     "docs",  # API documentation with Swagger
     "rest_framework",
@@ -216,7 +216,7 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-SOCIALACCOUNT_ADAPTER = "AuthenticationProject.adapters.CustomSocialAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "authentication.adapters.CustomSocialAccountAdapter"
 
 # URL Configuration
 APPEND_SLASH = True  # Enable automatic slash appending
