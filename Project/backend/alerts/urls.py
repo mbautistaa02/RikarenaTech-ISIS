@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import AlertViewSet, AlertCategoryViewSet
+
+from .views import AlertCategoryViewSet, AlertViewSet
 
 urlpatterns = [
     # Create alert
@@ -7,5 +8,9 @@ urlpatterns = [
     # List all alerts
     path("", AlertViewSet.as_view({"get": "list"}), name="alert-list"),
     # Alert categories
-    path("categories/", AlertCategoryViewSet.as_view({"get": "list"}), name="alert-categories-list"),
+    path(
+        "categories/",
+        AlertCategoryViewSet.as_view({"get": "list"}),
+        name="alert-categories-list",
+    ),
 ]
