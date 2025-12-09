@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from users.models import Department
+
 from .models import Alert, AlertCategory, AlertImage
 
 
@@ -23,8 +25,9 @@ class AlertImageSerializer(serializers.ModelSerializer):
 class AlertWriteSerrializer(serializers.ModelSerializer):
     """Serializer for creating alerts - only moderators/staff can use this"""
 
-    category_id = serializers.PrimaryKeyRelatedField(
-        source="category", queryset=AlertCategory.objects.all(), write_only=True
+    category_name = serializers.CharField(write_only=True)
+    department_name = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
     )
 
     class Meta:
@@ -32,27 +35,47 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
         fields = [
             "alert_title",
             "alert_message",
-            "category_id",
+            "category_name",
             "scope",
-            "department",
-            "municipality",
+            "department_name",
         ]
 
         read_only_fields = ["id"]
 
     def validate(self, data):  # type: ignore
-        """Custom validation to ensure municipality is set for municipal scope"""
+        """Custom validation and category/department lookup by name"""
 
         scope = data.get("scope")
-        if scope == "municipal" and not data.get("municipality"):
+
+        # Validate departmental scope has department
+        if scope == "departamental" and not data.get("department_name"):
             raise serializers.ValidationError(
-                "Municipality must be set for municipal scope alerts."
+                "Department name must be set for departamental scope alerts."
             )
 
-        elif scope == "departmental" and not data.get("department"):
+        # Lookup category by name
+        category_name = data.pop("category_name", None)
+        if not category_name:
+            raise serializers.ValidationError("category_name is required.")
+
+        try:
+            category = AlertCategory.objects.get(category_name=category_name)
+            data["category"] = category
+        except AlertCategory.DoesNotExist:
             raise serializers.ValidationError(
-                "Department must be set for departmental scope alerts."
+                f"Category '{category_name}' does not exist."
             )
+
+        # Lookup department by name
+        department_name = data.pop("department_name", None)
+        if department_name:
+            try:
+                department = Department.objects.get(name=department_name)
+                data["department"] = department
+            except Department.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Department '{department_name}' does not exist."
+                )
 
         return data
 
@@ -101,10 +124,9 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
 class AlertReadSerializer(serializers.ModelSerializer):
     """Visualization serializer for Alerts"""
 
-    municipality_name = serializers.CharField(
-        source="municipality.name", read_only=True
+    department_name = serializers.CharField(
+        source="department.name", read_only=True, allow_null=True
     )
-    department = serializers.CharField(read_only=True)
     category = AlertCategorySerializer(read_only=True)
     created_by_username = serializers.CharField(
         source="created_by.username", read_only=True
@@ -119,8 +141,7 @@ class AlertReadSerializer(serializers.ModelSerializer):
             "alert_message",
             "category",
             "scope",
-            "department",
-            "municipality_name",
+            "department_name",
             "images",
             "created_at",
             "updated_at",

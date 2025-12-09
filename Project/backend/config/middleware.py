@@ -8,10 +8,7 @@ from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http import Http404, JsonResponse
 from django.utils import timezone
 
-from rest_framework.exceptions import (
-    AuthenticationFailed,
-    NotAuthenticated,
-)
+from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 

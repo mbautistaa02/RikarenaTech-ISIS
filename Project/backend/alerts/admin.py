@@ -30,18 +30,18 @@ class AlertAdmin(admin.ModelAdmin):
         "alert_title",
         "category",
         "scope",
-        "municipality",
+        "department",
         "created_by",
         "created_at",
     ]
-    list_filter = ["category", "scope", "created_at", "municipality"]
+    list_filter = ["category", "scope", "created_at", "department"]
     search_fields = ["alert_title", "alert_message"]
-    raw_id_fields = ["municipality", "created_by"]
+    raw_id_fields = ["department", "created_by"]
     inlines = [AlertImageInline]
     readonly_fields = ["created_at", "updated_at"]
 
     fieldsets = (
-        ("Scope and Location", {"fields": ("scope", "municipality", "department")}),
+        ("Scope and Location", {"fields": ("scope", "department")}),
         (
             "Alert Details",
             {"fields": ("alert_title", "alert_message", "category", "image")},

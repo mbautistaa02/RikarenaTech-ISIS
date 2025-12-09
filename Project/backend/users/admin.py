@@ -36,17 +36,11 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "cellphone_number",
-        "role",
         "municipality",
         "registration_date",
     )
-    search_fields = ("user__username", "user__email", "cellphone_number", "role")
-    list_filter = (
-        "role",
-        "municipality__department",
-        "municipality",
-        "registration_date",
-    )
+    search_fields = ("user__username", "user__email", "cellphone_number")
+    list_filter = ("municipality__department", "municipality", "registration_date")
     ordering = ("user__username",)
     readonly_fields = ("registration_date", "created_at", "updated_at")
 
@@ -58,7 +52,7 @@ class ProfileAdmin(admin.ModelAdmin):
         ("Información del Usuario", {"fields": ("user",)}),
         (
             "Información Personal",
-            {"fields": ("cellphone_number", "role", "picture_url")},
+            {"fields": ("cellphone_number", "picture_url")},
         ),
         ("Ubicación", {"fields": ("municipality",)}),
         (
@@ -125,14 +119,12 @@ class HistoricalProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "cellphone_number",
-        "role",
         "municipality",
         "history_type",
         "history_date",
         "history_user",
     )
     list_filter = (
-        "role",
         "municipality",
         "municipality__department",
         "history_type",
@@ -147,7 +139,6 @@ class HistoricalProfileAdmin(admin.ModelAdmin):
     readonly_fields = (
         "user",
         "cellphone_number",
-        "role",
         "municipality",
         "registration_date",
         "picture_url",

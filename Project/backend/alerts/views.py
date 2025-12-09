@@ -50,10 +50,11 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = (
         Alert.objects.all()
-        .select_related("category", "created_by", "municipality")
+        .select_related("category", "created_by", "department")
         .prefetch_related("images")
         .order_by("-created_at")
     )
+
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,
@@ -76,35 +77,28 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
         Smart filtering based on user location (scope).
 
         - Global (scope='global'): Everyone sees (always)
-        - Municipal (scope='municipal'): Only users in that municipality
-        - Departmental (scope='departmental'): Only users in that department
+        - Departmental (scope='departamental'): Only users in that department
         """
         queryset = (
             Alert.objects.all()
-            .select_related("category", "created_by", "municipality")
+            .select_related("category", "created_by", "department")
             .prefetch_related("images")
             .order_by("-created_at")
         )
 
         # Build filters based on user's location
-        filters = Q(scope="global")  # Global alerts: everyone sees them
+        # Always include global alerts
+        filters = Q(scope="global")
 
-        if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
-            user_municipality = self.request.user.profile.municipality  # type: ignore
+        # Add departmental alerts if user has a department
+        if self.request.user.is_authenticated:
+            if hasattr(self.request.user, "profile"):
+                user_profile = self.request.user.profile  # type: ignore
+                if user_profile.municipality and user_profile.municipality.department:
+                    user_department = user_profile.municipality.department
+                    filters |= Q(scope="departamental", department=user_department)
 
-            # Add municipal filter if user has municipality
-            if user_municipality:
-                filters |= Q(scope="municipal") & Q(municipality=user_municipality)
-
-                # Add departmental filter if municipality has department
-                if user_municipality.department:
-                    user_department_name = user_municipality.department.name
-                    filters |= Q(scope="departmental") & Q(
-                        department=user_department_name
-                    )
-
-        queryset = queryset.filter(filters)
-        return queryset
+        return queryset.filter(filters)
 
     def create(self, request, *args, **kwargs):
         """Create alert - only moderators can do this"""

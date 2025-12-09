@@ -3,7 +3,7 @@ from django.db import models
 
 from simple_history.models import HistoricalRecords
 
-from users.models import Municipality
+from users.models import Department
 
 # Create your models here.
 
@@ -26,20 +26,18 @@ class Alert(models.Model):
 
     SCOPE_CHOICES = [
         ("global", "Global"),
-        ("departmental", "Departmental"),
-        ("municipal", "Municipal"),
+        ("departamental", "Departamental"),
     ]
 
     # Scope and Location
     scope = models.CharField(max_length=20, choices=SCOPE_CHOICES, default="global")
-    municipality = models.ForeignKey(
-        Municipality,
+    department = models.ForeignKey(
+        Department,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="alerts",
     )
-    department = models.CharField(max_length=100, null=True, blank=True)
 
     # Alert Details
     alert_title = models.CharField(max_length=200)

@@ -32,7 +32,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        exclude = ["id", "role", "user"]
+        exclude = ["id", "user"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
