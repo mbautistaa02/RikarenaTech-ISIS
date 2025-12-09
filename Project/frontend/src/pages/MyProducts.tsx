@@ -1,13 +1,66 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-export const MyProducts = () => {
-  const [items, setItems] = useState([]);
+import { showToast } from "@/lib/toast.ts";
+import { getMyPosts } from "@/services/postsService.ts";
+import { getCurrentUserProfile } from "@/services/profileService";
+import type { PostItem } from "@/types/post.ts";
+import type { CurrentUser } from "@/types/profile";
 
+export const MyProducts: React.FC = () => {
+  const [myInfo, setMyInfo] = useState<CurrentUser | null>(null);
+  const [items, setItems] = useState<PostItem[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/products")
-      .then((r) => r.json())
-      .then((data) => setItems(data));
+    const controller = new AbortController();
+    setLoading(true);
+    const loadProfile = async () => {
+      try {
+        const info = await getCurrentUserProfile(controller.signal);
+        setMyInfo(info);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching profile", err);
+          showToast(
+            "error",
+            "No se pudo cargar tu perfil. Intenta nuevamente.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => controller.abort();
+  }, []);
+
+  const fetchData = async () => {
+    const controller = new AbortController();
+    setLoading(true);
+    try {
+      const data = await getMyPosts(controller.signal);
+      if (Array.isArray(data)) {
+        // @ts-ignore
+        setItems(data);
+      } else {
+        setItems([]);
+      }
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        console.error("Error fetching posts", err);
+        setItems([]);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const [crops, setCrops] = useState([]);
@@ -18,7 +71,13 @@ export const MyProducts = () => {
       .then((r) => r.json())
       .then((data) => setCrops(data));
   }, []);
-
+  if (loading) {
+    return (
+      <div className="w-full flex bg-gray-50 justify-center px-4 py-12">
+        <div className="animate-pulse text-neutral-500">Cargando perfil...</div>
+      </div>
+    );
+  }
   return (
     <section className="w-full bg-neutral-50 flex flex-col items-center">
       {/* DESC PROFILE*/}
@@ -30,23 +89,17 @@ export const MyProducts = () => {
             <div className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-center overflow-hidden">
               {/* Imagen */}
               <img
-                src="/farmer.jpg"
+                src={myInfo?.profile?.picture_url || "/farmer.jpg"}
                 alt="Producto"
                 className="w-30 h-30 rounded-full mt-4 object-cover"
               />
               {/* Contenido */}
               <div className="mb-4 text-center">
                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                  Farmer
+                  {myInfo?.username || "farmer"}
                 </h3>
                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2 ml-4 mr-4">
-                  Farmer John has been passionately cultivating fresh, organic
-                  produce for over 20 years. Nestled in the fertile valleys of
-                  Willow Creek, our farm is dedicated to sustainable practices,
-                  ensuring every fruit and vegetable is grown with care and
-                  respect for nature. We believe in healthy soil, healthy
-                  plants, and healthy communities. Explore our selection of
-                  nature&apos;s finest, hand-picked daily for your table.
+                  {myInfo?.profile?.bio || "farmer"}
                 </p>
               </div>
             </div>
@@ -70,24 +123,28 @@ export const MyProducts = () => {
             >
               {/* Imagen */}
               <img
-                src={item["image"] || "/blueberry.png"}
-                alt={item["name"]}
+                src={
+                  item.images && item.images.length > 0
+                    ? item.images[0].image
+                    : "/blueberry.png"
+                }
+                alt={item.title}
                 className="w-full h-48 object-cover"
               />
 
               {/* Contenido */}
               <div className="p-4">
                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                  {item["name"]}
+                  {item.title}
                 </h3>
 
                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                  {item["desc"]}
+                  {item.desc}
                 </p>
 
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-xl font-bold text-green-600">
-                    ${item["price"]}
+                    ${item.price}
                   </span>
                   <div>
                     <button className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition">
