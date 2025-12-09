@@ -67,9 +67,7 @@ class StandardJSONRenderer(JSONRenderer):
         is_success = 200 <= status_code < 400
 
         # Keep pagination info before we strip results
-        pagination_meta = (
-            self._extract_pagination_meta(data) if is_success else None
-        )
+        pagination_meta = self._extract_pagination_meta(data) if is_success else None
 
         # Build comprehensive response structure
         formatted_data = {
