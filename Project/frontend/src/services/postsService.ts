@@ -29,15 +29,7 @@ export const getMarketplacePost = (id: string, signal?: AbortSignal) =>
 export const getCategories = (signal?: AbortSignal) =>
   apiClient.get<Category[]>(`/posts/categories/`, signal);
 
-export const createMarketplacePost = (payload: {
-  title: string;
-  content: string;
-  desc: string;
-  price: number | string;
-  images: string;
-  quantity: number | string;
-  unit_of_measure: string;
-}) => {
+export const createMarketplacePost = (payload: FormData) => {
   return apiClient.post(`/posts/my-listings/`, payload);
 };
 

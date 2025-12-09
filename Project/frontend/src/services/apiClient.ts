@@ -38,17 +38,17 @@ class ApiClient {
   ): Promise<TResponse> {
     const url = `${this.baseUrl}${path}`;
     const { body, headers, signal } = options;
-
+    const isFormData = body instanceof FormData;
     let res: Response;
     try {
       res = await fetch(url, {
         method,
         credentials: "include",
         headers: {
-          "Content-Type": "application/json",
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
           ...headers,
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         signal,
       });
     } catch (err) {

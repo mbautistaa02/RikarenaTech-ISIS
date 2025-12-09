@@ -76,7 +76,7 @@ export const Sellers = () => {
     <section className="w-full bg-neutral-50 flex flex-col py-4 items-center">
       {/* Bloque de búsqueda y categorías */}
       <div
-        className="w-full max-w-[1184px] bg-neutral-100 rounded-xl border border-neutral-200 shadow-md
+        className="w-full max-w-[1184px] relative bg-neutral-100 rounded-xl border border-neutral-200 shadow-md
                 px-4 py-4 flex flex-wrap items-center justify-between gap-4"
       >
         {/* Campo de búsqueda */}

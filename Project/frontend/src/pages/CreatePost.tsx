@@ -1,55 +1,81 @@
-import React, {useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { showToast } from "@/lib/toast";
-import {createMarketplacePost } from "@/services/postsService.ts";
+import { createMarketplacePost, getCategories } from "@/services/postsService.ts";
+import type { Category } from "@/types/category.ts";
 
 
 type FormState = {
   title: string;
   content: string;
-  desc: string;
   price: number | string;
   images: string;
   quantity: number | string;
   unit_of_measure: string;
 };
 
-
 export const CreatePost: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | "">("");
   const [form, setForm] = useState<FormState>({
     title: "",
     content: "",
-    desc: "",
     price: "",
     images: "",
     quantity: 0,
     unit_of_measure: "unidad",
   });
-  const [saving, setSaving] = useState(false);
-
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories(controller.signal);
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching categories", err);
+          setCategories([]);
+        }
+      }
+    };
+    loadCategories();
+    return () => controller.abort();
+  }, []);
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    // Si el usuario elige "Todas" o vacío, ponemos null o vacío según lo que espere tu backend
+    setSelectedCategory(value === "" ? "" : Number(value));
+  };
   const handleSave = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        title: form.title,
-        content: form.content,
-        desc: form.desc,
-        price: form.price,
-        images: form.images,
-        quantity: form.quantity,
-        unit_of_measure: form.unit_of_measure,
-      };
+    if (files.length === 0) {
+      showToast("error", "Por favor sube al menos una imagen");
+      return;
+    }
 
-      const created = await createMarketplacePost(payload);
+    // Crear FormData REAL con los archivos
+    const formData = new FormData();
+
+    // Añadir los campos de texto
+    formData.append("title", form.title);
+    formData.append("content", form.content);
+    formData.append("price", String(form.price));
+    formData.append("quantity", String(form.quantity));
+    formData.append("unit_of_measure", form.unit_of_measure);
+    formData.append("category", String(selectedCategory));
+    // Añadir todas las imágenes (puedes enviar una o varias)
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    try {
+      await createMarketplacePost(formData);
       showToast("success", "Post creado correctamente.");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      showToast("error", "Error al actualizar: " + message);
-    } finally {
-      setSaving(false);
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      showToast("error", "Error al crear el post: " + message);
     }
   };
 
@@ -155,19 +181,6 @@ export const CreatePost: React.FC = () => {
               </label>
               <textarea
                 className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
-                value={form.desc}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, desc: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="mt-6 flex flex-col gap-1">
-              <label className="font-[Inter] text-sm font-medium text-neutral-900">
-                Contenido
-              </label>
-              <textarea
-                className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
                 value={form.content}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, content: e.target.value }))
@@ -228,11 +241,16 @@ export const CreatePost: React.FC = () => {
             </p>
             <div className="mt-3 relative">
               <select
-                className="w-full h-[40px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-300/30">
-                <option>Seleccionar categoría</option>
-                <option>Frutas</option>
-                <option>Verduras</option>
-                <option>Lácteos</option>
+                value={selectedCategory === "" ? "" : String(selectedCategory)}
+                onChange={handleCategoryChange}
+                className="appearance-none w-[200px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none"
+              >
+                <option value="">Todas</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </div>
 
