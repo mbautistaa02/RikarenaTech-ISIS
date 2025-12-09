@@ -1,14 +1,19 @@
-# from django.urls import path
+from django.urls import include, path
+
 from rest_framework.routers import DefaultRouter
 
-# TODO: Agregar ViewSets cuando estén implementados
-# from .views import CropViewSet
+from .views import (
+    CropViewSet,
+    ProductViewSet,
+)
 
-# Router para endpoints con ViewSet
+# Main router for this app
 router = DefaultRouter()
-# router.register('', CropViewSet, basename='crops')
+
+# Register CRUD endpoints
+router.register("", CropViewSet, basename="")
+router.register("products", ProductViewSet, basename="products")
 
 urlpatterns = [
-    # Placeholder para futuras rutas de crops
-    # path("", include(router.urls)),
+    path("", include(router.urls)),
 ]

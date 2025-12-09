@@ -72,7 +72,6 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
         )
 
         # Validate minimum and maximum images
-        min_images = 2
         max_images = getattr(
             settings, "MAX_IMAGES_PER_ALERT", settings.MAX_IMAGES_PER_POST
         )

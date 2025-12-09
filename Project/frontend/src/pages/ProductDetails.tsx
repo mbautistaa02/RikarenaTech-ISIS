@@ -5,25 +5,45 @@ export default function ProductDetails() {
     const navigate = useNavigate();
     const { id } = useParams();
     const [item, setItem] = useState(null);
-    const [sellerId, setSellerId] = useState(null);
+    const [sellerName, setSellerName] = useState(null);
     const [seller, setSeller] = useState(null);
     useEffect(() => {
-        fetch(`https://6917819021a96359486d20a1.mockapi.io/api/v1/products/${id}`)
+        console.log(id);
+        fetch(`http://localhost:8000/api/posts/marketplace/${id}/`, {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
             .then(r => r.json())
-            .then(data =>
-            {setItem(data);
-            setSellerId(data.sellerId);})
+            .then(data => {
+                if (data.success && data.data) {
+                    setItem(data.data); // el objeto del producto
+                    setSellerName(data.data.user.username); // ← aquí tomas el id del usuario
+                }
+            })
+            }, [id]);
 
-    }, [id]);
     useEffect(() => {
-        if (!sellerId) return; // evitar fetch antes de tiempo
+        if (!sellerName) return; // evitar fetch antes de tiempo
 
-        fetch(`https://6917819021a96359486d20a1.mockapi.io/api/v1/sellers/${sellerId}`)
+        fetch(`http://localhost:8000/api/users/sellers/${sellerName}`, {
+                method: "GET",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
             .then(r => r.json())
-            .then(data => setSeller(data));
+            .then(data => {
+                if (data.success && data.data) {
+                    setSeller(data.data); // ahora seller es el objeto real
+                }
+            });
 
-    }, [sellerId]);
-    if (!item || !seller) {
+    }, [sellerName]);
+    if (!item || !seller ) {
         return <div className="p-10 text-center">Cargando...</div>;
     } else {
         return (
@@ -43,8 +63,8 @@ export default function ProductDetails() {
                         {/* Imagen */}
                         <div className="flex items-center">
                             <img
-                                src={item["image"] || "/blueberry.png"}
-                                alt={item["name"]}
+                                src={(item["images"] ? item["images"][0]["image"] : "/blueberry.png")}
+                                alt={item["title"]}
                                 className="w-full max-w-[600px] max-h-[400px] h-auto rounded-2xl object-cover mx-auto lg:mx-0"/>
 
                         </div>
@@ -54,7 +74,7 @@ export default function ProductDetails() {
                             {/* Título */}
                             <h1 className="font-[Outfit] text-[28px] leading-[34px] font-bold text-neutral-900
                    lg:text-[36px] lg:leading-[40px]">
-                                {item["name"]}
+                                {item["title"]}
                             </h1>
 
                             {/* Precio */}
@@ -77,8 +97,8 @@ export default function ProductDetails() {
                                 </p>
                                 <p className="font-[Inter] text-[14px] leading-[22px] font-medium text-[#448502] mt-6
                   lg:text-[16px] lg:leading-[24px] px-2">
-                                    {seller["name"]}
-                                    {seller["id"]}
+                                    {seller["username"]}
+                                    {/*{seller["id"]}*/}
                                 </p>
                             </div>
                             {/* Botón contactar con vendedor */}
@@ -105,24 +125,24 @@ export default function ProductDetails() {
                                 {/* Imagen */}
                                 <img
                                     src={seller["avatar"] || "/blueberry.png"}
-                                    alt={seller["name"]}
+                                    alt={seller["username"]}
                                     className="w-30 h-30 rounded-full mt-4 object-cover"
                                 />
                                 {/* Contenido */}
                                 <div className="mb-4 text-center">
                                     <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                        {seller["name"]}
+                                        {seller["username"]}
                                     </h3>
                                     <p className="font-[Inter] text-[14px] text-neutral-600 mb-2 ml-4 mr-4">
-                                        {seller["desc"]}
+                                        {seller["email"]}
                                     </p>
                                     <Link
-                                        to={`/products-by-seller/${seller["id"]}`}
+                                        to={`/products-by-seller/${seller["username"]}`}
                                         className="bg-[#83592EFF] hover:bg-[#6C4926FF] text-white border border-neutral-300 active:bg-[#53381DFF] px-4 py-2 rounded-xl transition"
                                     >
                                         View products
                                     </Link>
-                                 </div>
+                                </div>
 
 
                             </div>

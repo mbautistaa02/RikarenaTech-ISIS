@@ -1,11 +1,32 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 from rest_framework import serializers
 
-from .models import Profile
+from posts.serializers import MunicipalitySerializer
+
+from .models import Department, Municipality, Profile
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    """Serializer for user groups"""
+
+    class Meta:
+        model = Group
+        fields = ["id", "name"]
+
+
+class CompleteProfileSerializer(serializers.ModelSerializer):
+    """Complete profile serializer with all location details"""
+
+    municipality = MunicipalitySerializer(read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = "__all__"
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    municipality = MunicipalitySerializer(read_only=True)
 
     class Meta:
         model = Profile
@@ -25,6 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
             "user_permissions",
             "groups",
         ]
+        ref_name = "UsersUserSerializer"
 
 
 class SellerUserSerializer(serializers.ModelSerializer):
@@ -34,8 +56,6 @@ class SellerUserSerializer(serializers.ModelSerializer):
     active_posts_count = serializers.IntegerField(read_only=True)
     total_posts_count = serializers.IntegerField(read_only=True)
     latest_post_date = serializers.DateTimeField(read_only=True)
-    municipality_name = serializers.CharField(read_only=True)
-    department_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = User
@@ -49,6 +69,48 @@ class SellerUserSerializer(serializers.ModelSerializer):
             "active_posts_count",
             "total_posts_count",
             "latest_post_date",
-            "municipality_name",
-            "department_name",
         ]
+
+
+class CurrentUserSerializer(serializers.ModelSerializer):
+    """Complete serializer for authenticated user's own profile"""
+
+    profile = CompleteProfileSerializer(read_only=True)
+    groups = GroupSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_active",
+            "date_joined",
+            "last_login",
+            "profile",
+            "groups",
+        ]
+
+
+class SimpleMunicipalitySerializer(serializers.ModelSerializer):
+    """Simple municipality serializer for nested use in departments"""
+
+    class Meta:
+        model = Municipality
+        fields = ["id", "name"]
+
+
+class DepartmentWithMunicipalitiesSerializer(serializers.ModelSerializer):
+    """Department serializer with nested municipalities"""
+
+    municipalities = SimpleMunicipalitySerializer(many=True, read_only=True)
+    municipality_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = ["id", "name", "municipalities", "municipality_count", "created_at"]
+
+    def get_municipality_count(self, obj):
+        return obj.municipalities.count()

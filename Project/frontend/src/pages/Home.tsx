@@ -5,7 +5,13 @@ export const Home: React.FC = () => {
     const [items, setItems] = useState([]);
 
     useEffect(() => {
-        fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/products")
+        fetch("http://localhost:8000/api/posts/marketplace/", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
             .then(r => r.json())
             .then(data => setItems(data));
     }, []);
@@ -113,18 +119,20 @@ export const Home: React.FC = () => {
                 </h2>
             </div>
 
-            {/* Todos productos desde MockAPI */}
+
+
+            {/* Todos productos desde back */}
             <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
-                    {items.map(item => (
+                    {(items as any)?.data?.map((item: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                         <div
                             key={item["id"]}
                             className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
                         >
                             {/* Imagen */}
                             <img
-                                src={item["image"] || "/blueberry.png"}
+                                src={(item.images && item.images.length > 0 ? item.images[0].image : "/blueberry.png")}
                                 alt={item["name"]}
                                 className="w-full h-48 object-cover"
                             />
@@ -132,7 +140,7 @@ export const Home: React.FC = () => {
                             {/* Contenido */}
                             <div className="p-4">
                                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                    {item["name"]}
+                                    {item["title"]}
                                 </h3>
 
                                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">

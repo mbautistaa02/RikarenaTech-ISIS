@@ -23,7 +23,7 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Authentication endpoints
-    path("api/", include("AuthenticationProject.urls")),
+    path("api/", include("authentication.urls")),
     # App-specific API endpoints
     path("api/posts/", include("posts.urls")),
     path("api/users/", include("users.urls")),

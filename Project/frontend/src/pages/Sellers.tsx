@@ -5,12 +5,20 @@ export const Sellers = () => {
     const [sellers, setSellers] = useState([]);
 
     useEffect(() => {
-        fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/sellers")
+        fetch("http://localhost:8000/api/users/sellers/", {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
             .then(r => r.json())
             .then(data => setSellers(data));
+
     }, []);
 
     return (
+
         <section className="w-full bg-neutral-50 flex flex-col py-4 items-center">
 
             {/* Bloque de búsqueda y categorías */}
@@ -81,7 +89,7 @@ export const Sellers = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-8">
 
                     {/* Vendedores */}
-                    {sellers.map(seller => (
+                    {(sellers as any)?.data?.map((seller: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                         <div
                             key={seller["id"]}
                             className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-center overflow-hidden"
@@ -89,22 +97,22 @@ export const Sellers = () => {
                             {/* Imagen */}
                             <img
                                 src={seller["avatar"] || "/farmer.png"}
-                                alt={seller["name"]}
+                                alt={seller["username"]}
                                 className="w-30 h-30 rounded-full mt-4 object-cover"
                             />
 
                             {/* Contenido */}
                             <div className="mb-4 text-center">
                                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                                    {seller["name"]}
+                                    {seller["username"]}
                                 </h3>
 
                                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                                    {seller["desc"]}
+                                    {seller["email"]}
                                 </p>
 
                                 <Link
-                                    to={`/products-by-seller/${seller["id"]}`}
+                                    to={`/products-by-seller/${seller["username"]}`}
                                     className="bg-white hover:bg-neutral-100 border border-neutral-300 active:bg-neutral-200 px-4 py-2 rounded-xl transition"
                                 >
                                     View products

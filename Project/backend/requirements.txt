@@ -11,6 +11,7 @@ cryptography==46.0.3
 dj-rest-auth==7.0.1
 Django==5.2.8
 django-allauth==65.13.0
+django-cors-headers==4.9.0
 django-filter==25.2
 django-storages==1.14.6
 djangorestframework==3.16.1
@@ -49,3 +50,4 @@ tzdata==2025.2
 uritemplate==4.2.0
 urllib3==2.5.0
 yarg==0.1.10
+django-simple-history==3.7.0

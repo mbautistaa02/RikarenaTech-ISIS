@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function PanelDeModerador() {
   const [selectedCategory, setSelectedCategory] = useState("Public");
+  const [selectedScope, setSelectedScope] = useState("Global");
 
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8 py-10 flex flex-col gap-10">
@@ -31,8 +32,8 @@ export default function PanelDeModerador() {
                 type="text"
                 placeholder="Premium Organic Blueberries"
                 className="w-full h-[45px] px-3 font-[Inter] text-sm bg-neutral-200/10 
-                border border-neutral-300 rounded-md focus:ring-2 
-                focus:ring-neutral-300/30 focus:outline-none"
+                  border border-neutral-300 rounded-md focus:ring-2 
+                  focus:ring-neutral-300/30 focus:outline-none"
               />
             </div>
 
@@ -45,8 +46,8 @@ export default function PanelDeModerador() {
               <textarea
                 placeholder="Describe here what happened or the alert message..."
                 className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 
-                bg-neutral-200/10 border border-neutral-300 rounded-md 
-                focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
+                  bg-neutral-200/10 border border-neutral-300 rounded-md 
+                  focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
               />
             </div>
 
@@ -57,8 +58,8 @@ export default function PanelDeModerador() {
               </label>
 
               <div className="mt-1 border-2 border-neutral-300 border-dashed bg-neutral-200/20 
-              rounded-xl w-full h-[150px] flex flex-col items-center justify-center 
-              text-neutral-600 cursor-pointer">
+                  rounded-xl w-full h-[150px] flex flex-col items-center justify-center 
+                  text-neutral-600 cursor-pointer">
                 <svg
                   className="w-10 h-10"
                   fill="currentColor"
@@ -89,19 +90,38 @@ export default function PanelDeModerador() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full h-[40px] px-3 font-[Inter] text-sm 
-                bg-neutral-200/10 border border-neutral-300 rounded-md 
-                focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
+                  bg-neutral-200/10 border border-neutral-300 rounded-md 
+                  focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
               >
                 <option value="Public">Public</option>
+                <option value="Private">Private</option>
                 <option value="Option1">Option 1</option>
-                <option value="Option2">Option 2</option>
+              </select>
+            </div>
+
+            {/* ----- Scope ----- */}
+            <div className="flex flex-col gap-1">
+              <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                Scope
+              </label>
+
+              <select
+                value={selectedScope}
+                onChange={(e) => setSelectedScope(e.target.value)}
+                className="w-full h-[40px] px-3 font-[Inter] text-sm 
+                  bg-neutral-200/10 border border-neutral-300 rounded-md 
+                  focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
+              >
+                <option value="Global">Global</option>
+                <option value="Departamental">Departamental</option>
+                <option value="Municipal">Municipal</option>
               </select>
             </div>
 
             {/* ----- Botón enviar ----- */}
             <button
               className="w-full h-[45px] bg-[#448502] text-white rounded-md 
-              font-[Inter] font-semibold hover:bg-[#3C7602] active:bg-[#2F5D01]"
+                font-[Inter] font-semibold hover:bg-[#3C7602] active:bg-[#2F5D01]"
             >
               Submit Post
             </button>
@@ -109,7 +129,7 @@ export default function PanelDeModerador() {
             {/* ----- Botón cancelar ----- */}
             <button
               className="w-full h-[45px] border border-neutral-300 rounded-md 
-              font-[Inter] font-semibold text-neutral-700 hover:bg-neutral-100"
+                font-[Inter] font-semibold text-neutral-700 hover:bg-neutral-100"
             >
               Cancel
             </button>

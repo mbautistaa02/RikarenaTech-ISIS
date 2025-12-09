@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+from simple_history.models import HistoricalRecords
+
 from users.models import Municipality
 
 # Create your models here.
@@ -12,6 +14,7 @@ class AlertCategory(models.Model):
     category_name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Alert Category"
@@ -59,6 +62,7 @@ class Alert(models.Model):
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="alerts_created"
     )
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ["-created_at"]
@@ -77,6 +81,7 @@ class AlertImage(models.Model):
         upload_to="alerts/%Y/%m/%d/", help_text="Alert image or screenshot"
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ["uploaded_at"]
