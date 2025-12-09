@@ -95,7 +95,7 @@ class PostsTestFixtures:
         title="Test Tomatoes",
         content="Fresh organic tomatoes",
         category=None,
-        status=Post.StatusChoices.PENDING_REVIEW,
+        status=Post.StatusChoices.ACTIVE,
         **kwargs,
     ):
         """Create a test post with default agricultural data"""
@@ -216,6 +216,7 @@ class PostModelTest(TestCase):
             category=self.category,
             price=Decimal("15.50"),
             quantity=Decimal("50.0"),
+            status=Post.StatusChoices.PENDING_REVIEW,
         )
 
     def test_post_string_representation(self):
@@ -772,7 +773,7 @@ class UserPostViewSetTest(APITestCase):
         # Verify post was created and assigned to user
         created_post = Post.objects.get(title="Fresh Corn")
         self.assertEqual(created_post.user, self.user)
-        self.assertEqual(created_post.status, Post.StatusChoices.PENDING_REVIEW)
+        self.assertEqual(created_post.status, Post.StatusChoices.ACTIVE)
 
     def test_create_post_moderator_auto_active(self):
         """Test that moderator posts are automatically active"""
@@ -899,6 +900,8 @@ class UserPostViewSetTest(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         # Post is pending, should fail
+        self.user_post.status = Post.StatusChoices.PENDING_REVIEW
+        self.user_post.save()
         url = reverse("user-listings-mark-as-sold", kwargs={"pk": self.user_post.pk})
         response = self.client.patch(url)
 
@@ -1288,7 +1291,7 @@ class SerializerValidationTest(TestCase):
 
     def test_post_create_serializer_status_assignment(self):
         """Test status assignment logic in PostCreateUpdateSerializer"""
-        # Test regular user gets PENDING_REVIEW
+        # Test regular user gets ACTIVE by default
         from unittest.mock import Mock
 
         from posts.serializers import PostCreateUpdateSerializer
@@ -1313,7 +1316,7 @@ class SerializerValidationTest(TestCase):
         self.assertTrue(serializer.is_valid())
         post = serializer.save()
 
-        self.assertEqual(post.status, Post.StatusChoices.PENDING_REVIEW)
+        self.assertEqual(post.status, Post.StatusChoices.ACTIVE)
         self.assertEqual(post.user, self.user)
 
     def test_post_create_serializer_moderator_auto_active(self):

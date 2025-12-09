@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
+from simple_history.models import HistoricalRecords
+
 from users.models import Municipality
 
 if TYPE_CHECKING:
@@ -27,6 +29,7 @@ class Category(models.Model):
         blank=True,
         related_name="subcategories",
     )
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name_plural = "Categories"
@@ -84,7 +87,7 @@ class Post(models.Model):
     status = models.CharField(
         max_length=20,
         choices=StatusChoices.choices,
-        default=StatusChoices.PENDING_REVIEW,
+        default=StatusChoices.ACTIVE,
     )
     visibility = models.CharField(
         max_length=10,
@@ -124,6 +127,7 @@ class Post(models.Model):
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_notes = models.TextField(blank=True)
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ["-created_at"]
@@ -207,6 +211,7 @@ class PostImage(models.Model):
     caption = models.CharField(max_length=300, blank=True)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()
 
     class Meta:
         ordering = ["order", "created_at"]

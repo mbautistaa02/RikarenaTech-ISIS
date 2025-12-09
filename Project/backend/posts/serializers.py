@@ -97,6 +97,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "first_name", "last_name"]
         read_only_fields = ["id", "username", "first_name", "last_name"]
+        ref_name = "PostsUserSerializer"
 
 
 class PostListSerializer(serializers.ModelSerializer):
@@ -223,6 +224,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
 class PostCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating posts with automatic image handling"""
 
+    MIN_EXPIRY_DAYS = 30
+
     class Meta:
         model = Post
         fields = [
@@ -243,6 +246,9 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
 
         request = self.context["request"]
         validated_data["user"] = request.user
+        validated_data["expires_at"] = self._normalize_expiry(
+            validated_data.get("expires_at")
+        )
 
         # Get images from request FILES
         images = request.FILES.getlist("images") or request.FILES.getlist("images[]")
@@ -254,11 +260,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
             )
 
         # Set initial status based on user permissions
-        user = request.user
-        if user.groups.filter(name="moderators").exists() or user.is_staff:
-            validated_data["status"] = Post.StatusChoices.ACTIVE
-        else:
-            validated_data["status"] = Post.StatusChoices.PENDING_REVIEW
+        validated_data["status"] = Post.StatusChoices.ACTIVE
 
         # Create post
         post = Post.objects.create(**validated_data)
@@ -269,6 +271,26 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
                 PostImage.objects.create(post=post, image=image_file, order=index)
 
         return post
+
+    def update(self, instance, validated_data):
+        """Ensure minimum expiry on update as well"""
+        if "expires_at" in validated_data:
+            validated_data["expires_at"] = self._normalize_expiry(
+                validated_data.get("expires_at")
+            )
+        return super().update(instance, validated_data)
+
+    def _normalize_expiry(self, expires_at):
+        """Ensure expires_at is at least MIN_EXPIRY_DAYS days in the future."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        now = timezone.now()
+        min_expiry = now + timedelta(days=self.MIN_EXPIRY_DAYS)
+        if expires_at is None or expires_at < min_expiry:
+            return min_expiry
+        return expires_at
 
     def to_representation(self, instance):
         """Include images, full category and municipality objects in the response"""

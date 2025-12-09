@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from .models import Category, Post, PostImage
+from simple_history.admin import SimpleHistoryAdmin
+
+from .models import (
+    Category,
+    HistoricalCategory,
+    HistoricalPost,
+    HistoricalPostImage,
+    Post,
+    PostImage,
+)
 
 
 class PostImageInline(admin.TabularInline):
@@ -52,3 +61,33 @@ class PostImageAdmin(admin.ModelAdmin):
     list_display = ["post", "alt_text", "order", "created_at"]
     list_filter = ["created_at"]
     search_fields = ["post__title", "alt_text"]
+
+
+@admin.register(HistoricalCategory)
+class HistoricalCategoryAdmin(SimpleHistoryAdmin):
+    list_display = ("name", "history_type", "history_date", "history_user")
+    list_filter = ("history_type", "history_date")
+    search_fields = ("name", "history_user__username")
+    readonly_fields = [field.name for field in HistoricalCategory._meta.fields]
+
+
+@admin.register(HistoricalPost)
+class HistoricalPostAdmin(SimpleHistoryAdmin):
+    list_display = ("title", "status", "visibility", "history_type", "history_date")
+    list_filter = (
+        "history_type",
+        "history_date",
+        "status",
+        "visibility",
+        "category",
+    )
+    search_fields = ("title", "user__username", "history_user__username")
+    readonly_fields = [field.name for field in HistoricalPost._meta.fields]
+
+
+@admin.register(HistoricalPostImage)
+class HistoricalPostImageAdmin(SimpleHistoryAdmin):
+    list_display = ("post", "order", "history_type", "history_date")
+    list_filter = ("history_type", "history_date")
+    search_fields = ("post__title", "history_user__username")
+    readonly_fields = [field.name for field in HistoricalPostImage._meta.fields]

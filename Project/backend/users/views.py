@@ -1,7 +1,29 @@
+"""
+Users API Views
+
+This module provides comprehensive user and seller management endpoints:
+
+SELLER ENDPOINTS (SellerUserViewSet):
+- GET /api/users/sellers/ - List all sellers with advanced filtering
+- GET /api/users/sellers/{username}/ - Get specific seller details
+- GET /api/users/sellers/{username}/posts/ - Get seller's posts with filtering
+
+USER MANAGEMENT ENDPOINTS:
+- GET /api/users/me/ - Get complete authenticated user profile with groups
+- GET /api/users/all/ - List all users (moderators only)
+- GET /api/users/{username}/ - Get any user's details
+- PATCH /api/users/{username}/profile/ - Update own profile
+
+All endpoints require authentication. Sellers are users with at least one active post.
+Supports extensive filtering, searching, and pagination for optimal performance.
+"""
+
 from django.contrib.auth.models import User
 from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404
 
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -11,8 +33,14 @@ from rest_framework.views import APIView
 from posts.models import Post
 from posts.serializers import PostListSerializer
 
-from .models import Profile
-from .serializers import ProfileSerializer, SellerUserSerializer, UserSerializer
+from .models import Department, Profile
+from .serializers import (
+    CurrentUserSerializer,
+    DepartmentWithMunicipalitiesSerializer,
+    ProfileSerializer,
+    SellerUserSerializer,
+    UserSerializer,
+)
 
 
 class UserApiView(APIView):
@@ -37,6 +65,12 @@ class UserApiView(APIView):
                 message="You do not have permission to access this resource.",
             )
 
+    @swagger_auto_schema(
+        operation_summary="List all active users",
+        operation_description="Lists active users with profile included. Requires moderator/staff.",
+        tags=["Users"],
+        responses={200: UserSerializer(many=True)},
+    )
     def get(self, request):
         """Return all active users with their profiles."""
         users = User.objects.filter(is_active=True).select_related("profile")
@@ -44,12 +78,42 @@ class UserApiView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class UserDetailApiView(APIView):
+class CurrentUserApiView(APIView):
+    """Get complete profile for the authenticated user"""
 
     permission_classes = [IsAuthenticated]
 
-    """Get user detail by username with profile included"""
+    @swagger_auto_schema(
+        operation_summary="Get my profile",
+        operation_description="Returns the complete profile for the authenticated user, including groups and location.",
+        tags=["Users"],
+        responses={200: CurrentUserSerializer},
+    )
+    def get(self, request):
+        user = request.user
+        serializer = CurrentUserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+class UserDetailApiView(APIView):
+    """Get detailed user information by username"""
+
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="Get user by username",
+        operation_description="Returns user details (including profile) for an active user by username.",
+        tags=["Users"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Username of the user to retrieve.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={200: UserSerializer},
+    )
     def get(self, request, username):
         user = get_object_or_404(User, username=username, is_active=True)
         serializer = UserSerializer(user)
@@ -57,13 +121,52 @@ class UserDetailApiView(APIView):
 
 
 class ProfileDetailApiView(APIView):
-    """
-    Update profile of a user
-    Only the owner of the profile can update it
-    """
+    """Update user profile information"""
 
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_summary="Update my profile",
+        operation_description=(
+            "Allows a user to update their own profile. Only these fields are allowed: "
+            "`cellphone_number`, `municipality`, `first_name`, `last_name`, "
+            "`picture_url`, `username`, `bio`."
+        ),
+        tags=["Users"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Must match the authenticated user's username.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "cellphone_number": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Phone number",
+                ),
+                "municipality": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="Municipality id",
+                ),
+                "first_name": openapi.Schema(type=openapi.TYPE_STRING),
+                "last_name": openapi.Schema(type=openapi.TYPE_STRING),
+                "picture_url": openapi.Schema(
+                    type=openapi.TYPE_STRING, format=openapi.FORMAT_URI
+                ),
+                "username": openapi.Schema(type=openapi.TYPE_STRING),
+                "bio": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="User bio or description",
+                ),
+            },
+            additional_properties=False,
+        ),
+        responses={200: UserSerializer},
+    )
     def patch(self, request, username):
 
         user = get_object_or_404(User, username=username, is_active=True)
@@ -83,12 +186,13 @@ class ProfileDetailApiView(APIView):
             "last_name",
             "picture_url",
             "username",
+            "bio",
         }
 
         if not set(request.data.keys()).issubset(allowed_fields):
             return Response(
                 {
-                    "detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url"
+                    "detail": "You can only modify: cellphone_number, municipality, first_name, last_name, picture_url, username, bio"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -99,7 +203,7 @@ class ProfileDetailApiView(APIView):
         user_fields = {}
 
         for key, value in request.data.items():
-            if key in ["cellphone_number", "municipality"]:
+            if key in ["cellphone_number", "municipality", "bio"]:
                 profile_fields[key] = value
             else:
                 user_fields[key] = value
@@ -132,11 +236,9 @@ class ProfileDetailApiView(APIView):
 
 
 class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    ViewSet for users who are sellers (have published posts)
-    Read-only access to search and list sellers
-    """
+    """Read-only directory for users who are sellers (have public active posts)"""
 
+    swagger_tags = ["Users - Sellers"]
     serializer_class = SellerUserSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = "username"  # Use username instead of id
@@ -192,9 +294,14 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
             .distinct()
         )
 
-        return queryset
+        # Additional filtering by query parameters
 
-        # Additional filtering
+        # Filter by username (exact or partial match)
+        username = self.request.query_params.get("username")
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+
+        # Filter by category
         category = self.request.query_params.get("category")
         if category:
             queryset = queryset.filter(posts__category_id=category)
@@ -208,18 +315,165 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(last_name__icontains=name)
             )
 
+        # Filter by municipality
+        municipality = self.request.query_params.get("municipality")
+        if municipality:
+            queryset = queryset.filter(
+                Q(profile__municipality__name__icontains=municipality)
+                | Q(profile__municipality__id=municipality)
+            )
+
+        # Filter by department
+        department = self.request.query_params.get("department")
+        if department:
+            queryset = queryset.filter(
+                Q(profile__municipality__department__name__icontains=department)
+                | Q(profile__municipality__department__id=department)
+            )
+
         # Filter by minimum posts count
         min_posts = self.request.query_params.get("min_posts")
         if min_posts:
-            queryset = queryset.filter(active_posts_count__gte=min_posts)
+            try:
+                min_posts_int = int(min_posts)
+                queryset = queryset.filter(active_posts_count__gte=min_posts_int)
+            except ValueError:
+                pass
 
         return queryset
 
+    @swagger_auto_schema(
+        operation_summary="List seller users",
+        operation_description=(
+            "Lists users with at least one active/approved public post. Supports filtering by "
+            "username, name, category, municipality, department, min_posts and text search. "
+            "Ordering available by active_posts_count, latest_post_date, username."
+        ),
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "search",
+                openapi.IN_QUERY,
+                description="Text search across username, first_name, last_name, municipality, department.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "username",
+                openapi.IN_QUERY,
+                description="Filter by username (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "name",
+                openapi.IN_QUERY,
+                description="Filter by username, first_name or last_name (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by post category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "municipality",
+                openapi.IN_QUERY,
+                description="Filter by municipality name or id.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "department",
+                openapi.IN_QUERY,
+                description="Filter by department name or id.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "min_posts",
+                openapi.IN_QUERY,
+                description="Minimum number of active posts.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by active_posts_count, latest_post_date, username (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: SellerUserSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Get seller by username",
+        operation_description="Returns seller details including profile and stats. Uses username as lookup.",
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Username of the seller to retrieve.",
+                type=openapi.TYPE_STRING,
+            )
+        ],
+        responses={200: SellerUserSerializer},
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="List posts by seller",
+        operation_description=(
+            "Returns public active posts for the specified seller. Supports filters by "
+            "`category`, `min_price`, `max_price`, `city` and ordering by `published_at`, "
+            "`price`, `title`."
+        ),
+        tags=["Users - Sellers"],
+        manual_parameters=[
+            openapi.Parameter(
+                "username",
+                openapi.IN_PATH,
+                description="Seller username.",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "category",
+                openapi.IN_QUERY,
+                description="Filter by category id.",
+                type=openapi.TYPE_INTEGER,
+            ),
+            openapi.Parameter(
+                "min_price",
+                openapi.IN_QUERY,
+                description="Minimum price (inclusive).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "max_price",
+                openapi.IN_QUERY,
+                description="Maximum price (inclusive).",
+                type=openapi.TYPE_NUMBER,
+                format=openapi.FORMAT_DECIMAL,
+            ),
+            openapi.Parameter(
+                "city",
+                openapi.IN_QUERY,
+                description="Filter by city (partial match).",
+                type=openapi.TYPE_STRING,
+            ),
+            openapi.Parameter(
+                "ordering",
+                openapi.IN_QUERY,
+                description="Order by published_at, price or title (prefix with '-' for desc).",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: PostListSerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="posts")
     def posts(self, request, username=None):
-        """
-        Get all active posts for a specific seller
-        """
         user = self.get_object()
 
         # Get user's active posts
@@ -262,3 +516,24 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = PostListSerializer(posts_queryset, many=True)
         return Response(serializer.data)
+
+
+class DepartmentListApiView(APIView):
+    """Get all departments with their municipalities nested"""
+
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="List departments with municipalities",
+        operation_description=(
+            "Returns all departments with their municipalities nested. "
+            "Includes municipality count for each department."
+        ),
+        tags=["Departments & Municipalities"],
+        responses={200: "DepartmentWithMunicipalitiesSerializer(many=True)"},
+    )
+    def get(self, request):
+        """Return all departments with nested municipalities."""
+        departments = Department.objects.prefetch_related("municipalities").all()
+        serializer = DepartmentWithMunicipalitiesSerializer(departments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
