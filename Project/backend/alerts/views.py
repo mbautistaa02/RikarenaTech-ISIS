@@ -86,22 +86,19 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
             .order_by("-created_at")
         )
 
-        # TEMPORARILY DISABLED FILTERS - Return all alerts for debugging
-        return queryset
-        
         # Build filters based on user's location
         # Always include global alerts
-        # filters = Q(scope="global")
+        filters = Q(scope="global")
 
         # Add departmental alerts if user has a department
-        # if self.request.user.is_authenticated:
-        #     if hasattr(self.request.user, "profile"):
-        #         user_profile = self.request.user.profile  # type: ignore
-        #         if user_profile.municipality and user_profile.municipality.department:
-        #             user_department = user_profile.municipality.department
-        #             filters |= Q(scope="departamental", department=user_department)
+        if self.request.user.is_authenticated:
+            if hasattr(self.request.user, "profile"):
+                user_profile = self.request.user.profile  # type: ignore
+                if user_profile.municipality and user_profile.municipality.department:
+                    user_department = user_profile.municipality.department
+                    filters |= Q(scope="departamental", department=user_department)
 
-        # return queryset.filter(filters)
+        return queryset.filter(filters)
 
     def create(self, request, *args, **kwargs):
         """Create alert - only moderators can do this"""
