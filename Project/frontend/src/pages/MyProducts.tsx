@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { confirmToast } from "@/lib/button_toast.tsx";
 import { showToast } from "@/lib/toast.ts";
 import { getMyPosts } from "@/services/postsService.ts";
+import { deleteMarketplacePost } from "@/services/postsService.ts";
 import { getCurrentUserProfile } from "@/services/profileService";
 import type { PostItem } from "@/types/post.ts";
 import type { CurrentUser } from "@/types/profile";
@@ -63,6 +65,22 @@ export const MyProducts: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleDelete = async (id: number) => {
+    const confirmed = await confirmToast(
+      "¿Seguro quieres eliminar este producto?",
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteMarketplacePost(id);
+      showToast("success", "Producto eliminado correctamente.");
+      // Remover el producto eliminado del estado
+      setItems((prev) => prev.filter((item) => String(item.id) !== String(id)));
+    } catch (err) {
+      console.error("Error eliminando el post:", err);
+      showToast("error", "No se pudo eliminar el producto.");
+    }
+  };
   const [crops, setCrops] = useState([]);
 
   useEffect(() => {
@@ -147,7 +165,10 @@ export const MyProducts: React.FC = () => {
                     ${item.price}
                   </span>
                   <div>
-                    <button className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition">
+                    <button
+                      className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                      onClick={() => handleDelete(item.id)}
+                    >
                       Eliminar
                     </button>
                     <Link

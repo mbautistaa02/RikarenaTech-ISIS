@@ -115,6 +115,10 @@ class ApiClient {
       signal,
     });
   }
+
+  delete<TResponse>(path: string, signal?: AbortSignal) {
+    return this.request<TResponse>("DELETE", path, { signal });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

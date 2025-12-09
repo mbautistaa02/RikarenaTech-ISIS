@@ -1,7 +1,11 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 
-export const Header: React.FC = () => {
+type HeaderProps = {
+  receiveAlerts: boolean;
+};
+
+export const Header: React.FC<HeaderProps> = ({ receiveAlerts }) => {
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-sm z-50">
       <div className=" mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
@@ -101,18 +105,20 @@ export const Header: React.FC = () => {
               Mis productos y cultivos
             </NavLink>
 
-            <NavLink
-              to="/alerts"
-              className={({ isActive }) =>
-                `text-sm font-[Inter] ${
-                  isActive
-                    ? "text-[#448502] font-semibold"
-                    : "text-[#171A1F] hover:text-[#3C7602]"
-                }`
-              }
-            >
-              Alertas
-            </NavLink>
+            {receiveAlerts && (
+              <NavLink
+                to="/alerts"
+                className={({ isActive }) =>
+                  `text-sm font-[Inter] ${
+                    isActive
+                      ? "text-[#448502] font-semibold"
+                      : "text-[#171A1F] hover:text-[#3C7602]"
+                  }`
+                }
+              >
+                Alertas
+              </NavLink>
+            )}
 
             <NavLink
               to="/moderador"

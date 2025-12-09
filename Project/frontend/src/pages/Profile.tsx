@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+import { Header } from "@/Components/Header.tsx";
 import { showToast } from "@/lib/toast";
 import {
   getCurrentUserProfile,
@@ -20,6 +21,8 @@ type FormState = {
 export const Profile: React.FC = () => {
   const [myInfo, setMyInfo] = useState<CurrentUser | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [receiveAlerts, setReceiveAlerts] = useState(false);
+  const [receiveAlertsForm, setReceiveAlertsForm] = useState(false);
   const [form, setForm] = useState<FormState>({
     username: "",
     bio: "",
@@ -118,6 +121,7 @@ export const Profile: React.FC = () => {
       const updated = await updateUserProfile(myInfo.username, payload);
       setMyInfo(updated);
       showToast("success", "Perfil actualizado correctamente.");
+      setReceiveAlerts(receiveAlertsForm);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       showToast("error", "Error al actualizar: " + message);
@@ -264,10 +268,13 @@ export const Profile: React.FC = () => {
             <input
               type="checkbox"
               className="peer appearance-none w-4 h-4 border border-neutral-400 rounded checked:bg-green-600 transition"
+              checked={receiveAlertsForm}
+              onChange={(e) => setReceiveAlertsForm(e.target.checked)}
             />
             <span>Recibir alertas</span>
           </label>
         </div>
+        <Header receiveAlerts={receiveAlerts} />
 
         <div className="flex justify-end gap-4 mt-12">
           <button

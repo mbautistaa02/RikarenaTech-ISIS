@@ -35,3 +35,10 @@ export const createMarketplacePost = (payload: FormData) => {
 
 export const getMyPosts = (signal?: AbortSignal) =>
   apiClient.get<PostItem[]>(`/posts/my-listings/`, signal);
+
+export const deleteMarketplacePost = (id: number, signal?: AbortSignal) => {
+  return apiClient.delete<{ success: boolean }>(
+    `/posts/my-listings/${id}/`,
+    signal,
+  );
+};
