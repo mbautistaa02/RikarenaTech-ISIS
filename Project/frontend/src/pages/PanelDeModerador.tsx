@@ -10,7 +10,6 @@ export default function PanelDeModerador() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8 py-10 flex flex-col gap-10">
-
       {/* ---------- TÍTULO ---------- */}
       <h1 className="text-center font-[Outfit] text-[32px] font-bold text-neutral-900">
         Panel de moderador
@@ -18,15 +17,12 @@ export default function PanelDeModerador() {
 
       {/* ---------- CONTENEDOR PRINCIPAL ---------- */}
       <div className="bg-white shadow-sm rounded-xl p-10 max-w-7xl mx-auto w-full">
-
         {/* Grid 2 columnas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-
           {/* ============================================================
               COLUMNA IZQUIERDA – FORMULARIO DE ALERTA
           ============================================================ */}
           <div className="flex flex-col gap-6">
-
             {/* ----- Campo: Título ----- */}
             <div className="flex flex-col gap-1">
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
@@ -61,9 +57,11 @@ export default function PanelDeModerador() {
                 Alert Image
               </label>
 
-              <div className="mt-1 border-2 border-neutral-300 border-dashed bg-neutral-200/20 
+              <div
+                className="mt-1 border-2 border-neutral-300 border-dashed bg-neutral-200/20 
                   rounded-xl w-full h-[150px] flex flex-col items-center justify-center 
-                  text-neutral-600 cursor-pointer">
+                  text-neutral-600 cursor-pointer"
+              >
                 <svg
                   className="w-10 h-10"
                   fill="currentColor"
@@ -83,7 +81,6 @@ export default function PanelDeModerador() {
               COLUMNA DERECHA – OPCIONES
           ============================================================ */}
           <div className="flex flex-col gap-8">
-
             {/* ----- Categoría ----- */}
             <div className="flex flex-col gap-1">
               <label className="font-[Inter] text-sm font-medium text-neutral-900">

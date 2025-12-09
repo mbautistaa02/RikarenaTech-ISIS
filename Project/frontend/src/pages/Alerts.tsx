@@ -34,12 +34,10 @@ export default function Alerts() {
 
       {/* GRID DE ALERTAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-
         <AlertCard
           title="¡Alerta, lluvias en la zona!"
           description={`Se han presentado lluvias en tu ciudad Duitama, Boyacá.  
 Te recomendamos cuidar tus cultivos.`}
-
           image="https://www.elcampesino.co/wp-content/uploads/2015/06/IMG_4778.jpg"
         />
 
@@ -70,7 +68,6 @@ Te recomendamos cuidar tus cultivos.`}
           title="¡Alerta, mantenimiento mañana!"
           description="Mañana 02 de diciembre habrá mantenimiento de 20h a 21h."
         />
-
       </div>
     </div>
   );

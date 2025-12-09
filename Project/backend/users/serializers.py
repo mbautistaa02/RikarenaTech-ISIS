@@ -26,11 +26,22 @@ class CompleteProfileSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    municipality = MunicipalitySerializer(read_only=True)
+    municipality = serializers.PrimaryKeyRelatedField(
+        queryset=Municipality.objects.all(), allow_null=True, required=False
+    )
 
     class Meta:
         model = Profile
         exclude = ["id", "role", "picture_url", "user"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["municipality"] = (
+            MunicipalitySerializer(instance.municipality).data
+            if instance.municipality
+            else None
+        )
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
