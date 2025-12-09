@@ -41,9 +41,19 @@ class CropSerializer(serializers.ModelSerializer):
         # attrs may not contain raw input values if field-level validation altered them;
         # fall back to initial_data to ensure required checks behave as expected in tests.
         start_date = attrs.get("start_date") or self.initial_data.get("start_date")
-        harvest_date = attrs.get("harvest_date") or self.initial_data.get("harvest_date")
-        area = attrs.get("area") if attrs.get("area") is not None else self.initial_data.get("area")
-        production_qty = attrs.get("production_qty") if attrs.get("production_qty") is not None else self.initial_data.get("production_qty")
+        harvest_date = attrs.get("harvest_date") or self.initial_data.get(
+            "harvest_date"
+        )
+        area = (
+            attrs.get("area")
+            if attrs.get("area") is not None
+            else self.initial_data.get("area")
+        )
+        production_qty = (
+            attrs.get("production_qty")
+            if attrs.get("production_qty") is not None
+            else self.initial_data.get("production_qty")
+        )
 
         errors = {}
 
@@ -62,7 +72,9 @@ class CropSerializer(serializers.ModelSerializer):
                 errors["area"] = "La superficie (area) debe ser un número válido."
 
         # For partial updates, if production_qty isn't provided, skip the required check
-        if production_qty is None and not (self.partial and "production_qty" not in self.initial_data):
+        if production_qty is None and not (
+            self.partial and "production_qty" not in self.initial_data
+        ):
             errors["production_qty"] = "La producción es obligatoria."
         elif production_qty is not None:
             try:
@@ -84,10 +96,6 @@ class CropSerializer(serializers.ModelSerializer):
             )
 
         # Asociar el owner del registro desde el usuario autenticado
-<<<<<<< Updated upstream
-        # assign the actual user instance to the ForeignKey field name `user`
-=======
->>>>>>> Stashed changes
         user = getattr(request, "user", None)
         if user is None or not getattr(user, "id", None):
             raise serializers.ValidationError(
