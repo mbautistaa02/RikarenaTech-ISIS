@@ -193,10 +193,6 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-# Where to send users after login/logout (frontend app)
-LOGIN_REDIRECT_URL = "http://localhost:5173/products"
-ACCOUNT_LOGOUT_REDIRECT_URL = "http://localhost:5173/"
-
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "config.authentication.NoCSRFSessionAuthentication",
@@ -251,9 +247,10 @@ SOCIALACCOUNT_ADAPTER = "authentication.adapters.CustomSocialAccountAdapter"
 ACCOUNT_ADAPTER = "authentication.adapters.CustomAccountAdapter"
 
 # Allauth Configuration for redirects
-LOGIN_REDIRECT_URL = f"{FRONTEND_URL}/dashboard"
+LOGIN_REDIRECT_URL = f"{FRONTEND_URL}/products"
 LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/"
 ACCOUNT_LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/"
+ACCOUNT_LOGOUT_ON_GET = True
 
 # Additional allauth settings
 SOCIALACCOUNT_LOGIN_ON_GET = True
