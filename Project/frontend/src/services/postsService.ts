@@ -28,3 +28,7 @@ export const getMarketplacePost = (id: string, signal?: AbortSignal) =>
 
 export const getCategories = (signal?: AbortSignal) =>
   apiClient.get<Category[]>(`/posts/categories/`, signal);
+
+
+export const getMyPosts = (signal?: AbortSignal) =>
+    apiClient.get<PostItem[]>(`/posts/my-listings/`, signal);
