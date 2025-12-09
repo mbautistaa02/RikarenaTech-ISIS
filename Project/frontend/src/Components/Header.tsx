@@ -6,9 +6,6 @@ interface UserGroup {
   name: string;
 }
 
-interface UserData {
-  groups: UserGroup[];
-}
 
 export const Header: React.FC = () => {
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);

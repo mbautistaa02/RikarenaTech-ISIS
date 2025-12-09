@@ -54,7 +54,7 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
         .prefetch_related("images")
         .order_by("-created_at")
     )
-    
+
     permission_classes = [IsAuthenticated]
     filter_backends = [
         DjangoFilterBackend,

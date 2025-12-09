@@ -1,7 +1,8 @@
 from rest_framework import serializers
 
-from .models import Alert, AlertCategory, AlertImage
 from users.models import Department
+
+from .models import Alert, AlertCategory, AlertImage
 
 
 class AlertCategorySerializer(serializers.ModelSerializer):
@@ -25,7 +26,9 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
     """Serializer for creating alerts - only moderators/staff can use this"""
 
     category_name = serializers.CharField(write_only=True)
-    department_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    department_name = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
 
     class Meta:
         model = Alert
@@ -43,7 +46,7 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
         """Custom validation and category/department lookup by name"""
 
         scope = data.get("scope")
-        
+
         # Validate departmental scope has department
         if scope == "departamental" and not data.get("department_name"):
             raise serializers.ValidationError(
@@ -53,10 +56,8 @@ class AlertWriteSerrializer(serializers.ModelSerializer):
         # Lookup category by name
         category_name = data.pop("category_name", None)
         if not category_name:
-            raise serializers.ValidationError(
-                "category_name is required."
-            )
-        
+            raise serializers.ValidationError("category_name is required.")
+
         try:
             category = AlertCategory.objects.get(category_name=category_name)
             data["category"] = category

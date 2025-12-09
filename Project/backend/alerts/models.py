@@ -3,7 +3,7 @@ from django.db import models
 
 from simple_history.models import HistoricalRecords
 
-from users.models import Municipality, Department
+from users.models import Department, Municipality
 
 # Create your models here.
 
