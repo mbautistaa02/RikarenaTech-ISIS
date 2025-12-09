@@ -151,11 +151,14 @@ export default function PanelDeModerador() {
       console.log(JSON.stringify(formDataObj, null, 2));
       console.log("================================");
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/alerts/create/`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/alerts/create/`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        },
+      );
 
       if (response.ok) {
         const data = await response.json();
