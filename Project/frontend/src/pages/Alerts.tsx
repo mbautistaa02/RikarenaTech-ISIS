@@ -75,7 +75,7 @@ export default function Alerts() {
     localStorage.setItem("lastAlertsVisit", now);
 
     // First, check if user has municipality configured
-    fetch("http://localhost:8000/api/users/me/", {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/users/me/`, {
       method: "GET",
       credentials: "include",
       headers: {
@@ -106,7 +106,7 @@ export default function Alerts() {
 
   const fetchAlerts = () => {
     // Fetch alerts from backend
-    fetch("http://localhost:8000/api/alerts/", {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/alerts/`, {
       method: "GET",
       credentials: "include",
       headers: {

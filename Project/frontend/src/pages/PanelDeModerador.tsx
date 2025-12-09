@@ -151,7 +151,7 @@ export default function PanelDeModerador() {
       console.log(JSON.stringify(formDataObj, null, 2));
       console.log("================================");
 
-      const response = await fetch("http://localhost:8000/api/alerts/create/", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/alerts/create/`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -178,7 +178,7 @@ export default function PanelDeModerador() {
   // Fetch departments and categories from backend
   useEffect(() => {
     // Fetch departments
-    fetch("http://localhost:8000/api/users/departments/", {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/users/departments/`, {
       method: "GET",
       credentials: "include",
       headers: {
@@ -199,7 +199,7 @@ export default function PanelDeModerador() {
       });
 
     // Fetch alert categories
-    fetch("http://localhost:8000/api/alerts/categories/", {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/alerts/categories/`, {
       method: "GET",
       credentials: "include",
       headers: {
