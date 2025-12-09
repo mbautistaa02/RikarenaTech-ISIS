@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 
 import { showToast } from "@/lib/toast";
-import { createMarketplacePost, getCategories } from "@/services/postsService.ts";
+import {
+  createMarketplacePost,
+  getCategories,
+} from "@/services/postsService.ts";
 import type { Category } from "@/types/category.ts";
-
 
 type FormState = {
   title: string;
@@ -79,7 +81,6 @@ export const CreatePost: React.FC = () => {
     }
   };
 
-
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8 flex flex-col gap-10">
       <div className="w-full min-h-screen bg-gray-50 py-10 flex flex-col gap-10">
@@ -92,7 +93,6 @@ export const CreatePost: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* ----------- COLUMNA IZQUIERDA ----------- */}
           <div className="bg-white shadow-sm rounded-xl p-6">
-
             <h2 className="font-[Outfit] text-[20px] font-semibold text-neutral-900">
               Imagen principal
             </h2>
@@ -101,7 +101,8 @@ export const CreatePost: React.FC = () => {
               Sube la imagen para tu publicación.
             </p>
 
-            <div className="mt-2 border-2 border-neutral-300 border-dashed
+            <div
+              className="mt-2 border-2 border-neutral-300 border-dashed
             bg-neutral-200/20 rounded-xl w-full h-[580px] flex flex-col
             items-center justify-center relative"
             >
@@ -146,7 +147,6 @@ export const CreatePost: React.FC = () => {
                 </>
               )}
             </div>
-
           </div>
 
           {/* ----------- COLUMNA DERECHA ----------- */}
@@ -202,8 +202,8 @@ export const CreatePost: React.FC = () => {
                 }
               />
               <span className="absolute left-3 top-[46px] font-bold text-neutral-600">
-              $
-            </span>
+                $
+              </span>
             </div>
 
             {/* ----- Campo: Cantidad ----- */}
@@ -230,7 +230,10 @@ export const CreatePost: React.FC = () => {
                 className="w-full h-[49px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
                 value={form.unit_of_measure}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, unit_of_measure: e.target.value }))
+                  setForm((prev) => ({
+                    ...prev,
+                    unit_of_measure: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -266,4 +269,4 @@ export const CreatePost: React.FC = () => {
       </div>
     </div>
   );
-}
+};

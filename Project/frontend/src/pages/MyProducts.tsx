@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  getCurrentUserProfile,
-} from "@/services/profileService";
-import type { CurrentUser } from "@/types/profile";
+
 import { showToast } from "@/lib/toast.ts";
 import { getMyPosts } from "@/services/postsService.ts";
+import { getCurrentUserProfile } from "@/services/profileService";
 import type { PostItem } from "@/types/post.ts";
+import type { CurrentUser } from "@/types/profile";
 
 export const MyProducts: React.FC = () => {
   const [myInfo, setMyInfo] = useState<CurrentUser | null>(null);
@@ -38,7 +37,7 @@ export const MyProducts: React.FC = () => {
     return () => controller.abort();
   }, []);
 
-  const fetchData = async () => { 
+  const fetchData = async () => {
     const controller = new AbortController();
     setLoading(true);
     try {
@@ -62,9 +61,7 @@ export const MyProducts: React.FC = () => {
   };
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   const [crops, setCrops] = useState([]);
 
