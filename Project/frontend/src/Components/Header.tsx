@@ -6,7 +6,6 @@ interface UserGroup {
   name: string;
 }
 
-
 export const Header: React.FC = () => {
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const [isModerator, setIsModerator] = useState(false);
@@ -24,7 +23,9 @@ export const Header: React.FC = () => {
       .then((response) => {
         if (response.data && response.data.groups) {
           const groups = response.data.groups;
-          const hasModerator = groups.some((group: UserGroup) => group.name === "moderators");
+          const hasModerator = groups.some(
+            (group: UserGroup) => group.name === "moderators",
+          );
           setIsModerator(hasModerator);
         }
       })
@@ -34,7 +35,7 @@ export const Header: React.FC = () => {
 
     // Fetch unread alerts count
     const lastVisitTimestamp = localStorage.getItem("lastAlertsVisit");
-    
+
     fetch("http://localhost:8000/api/alerts/", {
       method: "GET",
       credentials: "include",

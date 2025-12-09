@@ -33,14 +33,16 @@ export default function PanelDeModerador() {
   const handleSelectFiles = (files: FileList | null) => {
     if (!files) return;
     const filesArr = Array.from(files);
-    
+
     const MAX_IMAGES = 10;
     const currentCount = alertImages.length;
     const newCount = currentCount + filesArr.length;
-    
+
     // Validar que no exceda el límite
     if (newCount > MAX_IMAGES) {
-      alert(`Solo puedes agregar ${MAX_IMAGES - currentCount} imagen(es) más. Máximo ${MAX_IMAGES} imágenes permitidas.`);
+      alert(
+        `Solo puedes agregar ${MAX_IMAGES - currentCount} imagen(es) más. Máximo ${MAX_IMAGES} imágenes permitidas.`,
+      );
       return;
     }
 
@@ -105,7 +107,7 @@ export default function PanelDeModerador() {
       alert("Por favor selecciona un departamento");
       return;
     }
-    
+
     // Validar número máximo de imágenes
     const MAX_IMAGES = 10;
     if (alertImages.length > MAX_IMAGES) {
@@ -120,11 +122,12 @@ export default function PanelDeModerador() {
       formData.append("alert_title", alertTitle);
       formData.append("alert_message", alertDescription);
       formData.append("category_name", selectedCategory);
-      
+
       // Mapear scope a los valores correctos del backend
-      const scopeValue = selectedScope === "Global" ? "global" : "departamental";
+      const scopeValue =
+        selectedScope === "Global" ? "global" : "departamental";
       formData.append("scope", scopeValue);
-      
+
       if (selectedScope === "Departamental" && selectedDepartment) {
         formData.append("department_name", selectedDepartment);
       }
@@ -296,7 +299,9 @@ export default function PanelDeModerador() {
                 </p>
                 {alertImages.length > 0 && (
                   <span className="mt-2 text-sm text-neutral-700 font-[Inter]">
-                    {alertImages.length} archivo{alertImages.length !== 1 ? "s" : ""} seleccionado{alertImages.length !== 1 ? "s" : ""}
+                    {alertImages.length} archivo
+                    {alertImages.length !== 1 ? "s" : ""} seleccionado
+                    {alertImages.length !== 1 ? "s" : ""}
                   </span>
                 )}
               </button>
@@ -352,13 +357,16 @@ export default function PanelDeModerador() {
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">
-                  {loading ? "Cargando categorías..." : "Seleccione una categoría"}
+                  {loading
+                    ? "Cargando categorías..."
+                    : "Seleccione una categoría"}
                 </option>
-                {Array.isArray(categories) && categories.map((cat) => (
-                  <option key={cat.category_name} value={cat.category_name}>
-                    {cat.category_name}
-                  </option>
-                ))}
+                {Array.isArray(categories) &&
+                  categories.map((cat) => (
+                    <option key={cat.category_name} value={cat.category_name}>
+                      {cat.category_name}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -397,13 +405,16 @@ export default function PanelDeModerador() {
                     disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">
-                    {loading ? "Cargando departamentos..." : "Seleccione un departamento"}
+                    {loading
+                      ? "Cargando departamentos..."
+                      : "Seleccione un departamento"}
                   </option>
-                  {Array.isArray(departments) && departments.map((dept) => (
-                    <option key={dept.id} value={dept.name}>
-                      {dept.name}
-                    </option>
-                  ))}
+                  {Array.isArray(departments) &&
+                    departments.map((dept) => (
+                      <option key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}

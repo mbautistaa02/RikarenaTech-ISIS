@@ -66,6 +66,11 @@ class StandardJSONRenderer(JSONRenderer):
         status_code = response.status_code
         is_success = 200 <= status_code < 400
 
+        # Keep pagination info before we strip results
+        pagination_meta = (
+            self._extract_pagination_meta(data) if is_success else None
+        )
+
         # Build comprehensive response structure
         formatted_data = {
             "success": is_success,
@@ -74,6 +79,9 @@ class StandardJSONRenderer(JSONRenderer):
             "timestamp": timezone.now().isoformat(),
             "status_code": status_code,
         }
+
+        if pagination_meta:
+            formatted_data["meta"] = pagination_meta
 
         # Add request context for debugging (staff users only)
         if (
