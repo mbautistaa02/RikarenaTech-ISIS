@@ -1,20 +1,105 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { getCategories, getMarketplacePosts } from "@/services/postsService";
+import type { Category } from "@/types/category";
+import type { PostItem } from "@/types/post";
+
 export const Home: React.FC = () => {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<PostItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | "">("");
+  const [ordering, setOrdering] = useState<string>("-published_at");
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async (opts?: {
+    search?: string;
+    category?: number | "";
+    ordering?: string;
+  }) => {
+    const controller = new AbortController();
+    setLoading(true);
+    const effectiveSearch = opts?.search ?? search;
+    const effectiveCategory =
+      opts?.category !== undefined ? opts.category : selectedCategory;
+    const effectiveOrdering = opts?.ordering ?? ordering;
+
+    try {
+      const data = await getMarketplacePosts(
+        {
+          search: effectiveSearch || undefined,
+          category:
+            effectiveCategory && !Number.isNaN(Number(effectiveCategory))
+              ? Number(effectiveCategory)
+              : undefined,
+          ordering: effectiveOrdering,
+        },
+        controller.signal,
+      );
+      setItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        console.error("Error fetching posts", err);
+        setItems([]);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/posts/marketplace/", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((r) => r.json())
-      .then((data) => setItems(data));
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories(controller.signal);
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching categories", err);
+          setCategories([]);
+        }
+      }
+    };
+    loadCategories();
+    return () => controller.abort();
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
+  const handleSubmitSearch = () => {
+    fetchData({ search });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmitSearch();
+    }
+  };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    const next = value ? Number(value) : "";
+    setSelectedCategory(next);
+    fetchData({ category: next });
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setOrdering(value);
+    fetchData({ ordering: value });
+  };
+
   return (
     <section className="w-full  bg-neutral-50 flex flex-col items-center">
       {/* Banner */}
@@ -42,12 +127,34 @@ export const Home: React.FC = () => {
           <span className="text-neutral-900 font-[Inter] font-medium text-lg">
             Categoría:
           </span>
-          <button className="px-3 py-2 text-sm font-medium text-neutral-900 rounded-md hover:bg-neutral-200">
-            Frutas
-          </button>
-          <button className="px-3 py-2 hidden sm:flex text-sm font-medium text-neutral-900 rounded-md hover:bg-neutral-200">
-            Verduras
-          </button>
+          <div className="relative">
+            <select
+              value={selectedCategory === "" ? "" : String(selectedCategory)}
+              onChange={handleCategoryChange}
+              className="appearance-none w-[200px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none"
+            >
+              <option value="">Todas</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-900 pointer-events-none"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </div>
         </div>
 
         {/* 🔸 Campo de búsqueda */}
@@ -56,8 +163,14 @@ export const Home: React.FC = () => {
             type="text"
             placeholder="Buscar producto..."
             className="flex-1 h-10 px-3 text-sm outline-none font-[Inter] border border-neutral-300 border-r-0 rounded-l-md"
+            value={search}
+            onChange={handleSearchChange}
+            onKeyDown={handleKeyDown}
           />
-          <button className="h-10 w-10 bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01] text-white flex items-center justify-center rounded-r-md border border-neutral-400 border-l-0">
+          <button
+            onClick={handleSubmitSearch}
+            className="h-10 w-10 bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01] text-white flex items-center justify-center rounded-r-md border border-neutral-400 border-l-0"
+          >
             {/* Ícono de búsqueda SVG */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -82,10 +195,14 @@ export const Home: React.FC = () => {
             Sort by:
           </span>
           <div className="relative">
-            <select className="appearance-none w-[180px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none">
-              <option>Más recientes</option>
-              <option>Precio: menor a mayor</option>
-              <option>Precio: mayor a menor</option>
+            <select
+              value={ordering}
+              onChange={handleSortChange}
+              className="appearance-none w-[180px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none"
+            >
+              <option value="-published_at">Más recientes</option>
+              <option value="price">Precio: menor a mayor</option>
+              <option value="-price">Precio: mayor a menor</option>
             </select>
             {/* Ícono de flecha hacia abajo SVG */}
             <svg
@@ -116,9 +233,19 @@ export const Home: React.FC = () => {
       {/* Todos productos desde back */}
       <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {(items as any)?.data?.map((item: any) => (
+          {loading && (
+            <div className="col-span-full text-center text-neutral-500">
+              Buscando productos...
+            </div>
+          )}
+          {!loading && items.length === 0 && (
+            <div className="col-span-full text-center text-neutral-500">
+              No se encontraron productos.
+            </div>
+          )}
+          {items.map((item) => (
             <div
-              key={item["id"]}
+              key={item.id}
               className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
             >
               {/* Imagen */}
@@ -128,27 +255,27 @@ export const Home: React.FC = () => {
                     ? item.images[0].image
                     : "/blueberry.png"
                 }
-                alt={item["name"]}
+                alt={item.title}
                 className="w-full h-48 object-cover"
               />
 
               {/* Contenido */}
               <div className="p-4">
                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                  {item["title"]}
+                  {item.title}
                 </h3>
 
                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                  {item["desc"]}
+                  {item.desc || item.content}
                 </p>
 
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-xl font-bold text-green-600">
-                    ${item["price"]}
+                    ${item.price}
                   </span>
 
                   <Link
-                    to={`/product_details/${item["id"]}`}
+                    to={`/product_details/${item.id}`}
                     className="bg-white hover:bg-neutral-100 border border-neutral-300 active:bg-neutral-200 px-4 py-2 rounded-xl transition"
                   >
                     View product details

@@ -227,7 +227,11 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
         # Agricultural marketplace filtering
         category = self.request.query_params.get("category")
         if category:
-            queryset = queryset.filter(category_id=category)
+            category_ids = self._get_category_and_descendants(category)
+            if category_ids:
+                queryset = queryset.filter(category_id__in=category_ids)
+            else:
+                queryset = queryset.none()
 
         # Price range filtering
         min_price = self._get_decimal_param("min_price")
@@ -257,6 +261,24 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(is_featured=True)
 
         return queryset
+
+    def _get_category_and_descendants(self, category_id: str | int):
+        """Return a list of category ids including all active descendants"""
+        try:
+            cid = int(category_id)
+        except (TypeError, ValueError):
+            return []
+
+        ids = []
+        to_visit = [cid]
+        while to_visit:
+            current = to_visit.pop()
+            ids.append(current)
+            children = Category.objects.filter(
+                parent_id=current, is_active=True
+            ).values_list("id", flat=True)
+            to_visit.extend(list(children))
+        return ids
 
     def get_serializer_class(self):  # type: ignore
         """Use detailed serializer for retrieve"""
