@@ -33,6 +33,16 @@ export default function PanelDeModerador() {
   const handleSelectFiles = (files: FileList | null) => {
     if (!files) return;
     const filesArr = Array.from(files);
+    
+    const MAX_IMAGES = 10;
+    const currentCount = alertImages.length;
+    const newCount = currentCount + filesArr.length;
+    
+    // Validar que no exceda el límite
+    if (newCount > MAX_IMAGES) {
+      alert(`Solo puedes agregar ${MAX_IMAGES - currentCount} imagen(es) más. Máximo ${MAX_IMAGES} imágenes permitidas.`);
+      return;
+    }
 
     // Append to existing selection so multiple picks accumulate
     setAlertImages((prevFiles) => {
@@ -93,6 +103,13 @@ export default function PanelDeModerador() {
     }
     if (selectedScope === "Departamental" && !selectedDepartment) {
       alert("Por favor selecciona un departamento");
+      return;
+    }
+    
+    // Validar número máximo de imágenes
+    const MAX_IMAGES = 10;
+    if (alertImages.length > MAX_IMAGES) {
+      alert(`Demasiadas imágenes. El máximo permitido es ${MAX_IMAGES}.`);
       return;
     }
 
