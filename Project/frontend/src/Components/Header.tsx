@@ -198,7 +198,9 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Botón */}
-        <a href={`${import.meta.env.VITE_API_BASE_URL}/auth/google/login/?process=login`}>
+        <a
+          href={`${import.meta.env.VITE_API_BASE_URL}/auth/google/login/?process=login`}
+        >
           <button className=" sm:flex items-center justify-center px-4 py-2 h-9 rounded-md bg-[#448502] text-white text-sm font-medium hover:bg-[#3C7602] active:bg-[#2F5D01] font-[Inter] transition">
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -7,8 +7,11 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
-const tsconfigRootDir = new URL(".", import.meta.url).pathname;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default tseslint.config(
   { ignores: ["dist", "node_modules", "eslint.config.ts"] },
@@ -16,13 +19,13 @@ export default tseslint.config(
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "module",
+      sourceType: "commonjs",
       globals: globals.browser,
       parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: { jsx: true },
-        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
-        tsconfigRootDir,
+        tsconfigRootDir: __dirname,
+        project: ["./tsconfig.app.json", "./tsconfig.node.json", "./tsconfig.json"],
       },
     },
     settings: {
