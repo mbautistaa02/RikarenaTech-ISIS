@@ -1,6 +1,53 @@
-import { useState } from "react";
-export default function CreatePost() {
+import React, { useEffect, useState } from "react";
+
+import { showToast } from "@/lib/toast";
+import {createMarketplacePost } from "@/services/postsService.ts";
+import type { PostItem } from "@/types/post";
+
+
+type FormState = {
+  title: string;
+  content: string;
+  desc: string;
+  price: number | string;
+  images: string;
+};
+
+
+export const CreatePost: React.FC = () => {
   const [showImage, setShowImage] = useState<boolean>(false);
+  const [postInfo, setPostInfo] = useState<PostItem | null>(null);
+  const [form, setForm] = useState<FormState>({
+    title: "",
+    content: "",
+    desc: "",
+    price: "",
+    images: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        title: form.title,
+        content: form.content,
+        desc: form.desc,
+        price: form.price,
+        images: form.images,
+      };
+
+      const created = await createMarketplacePost(payload);
+      showToast("success", "Post creado correctamente.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      showToast("error", "Error al actualizar: " + message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8  flex flex-col gap-10">
       <div className="w-full min-h-screen bg-gray-50  py-10 flex flex-col gap-10">
@@ -146,6 +193,7 @@ export default function CreatePost() {
 
             {/* ----- Botón crear post ----- */}
             <button
+              onClick={handleSave}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

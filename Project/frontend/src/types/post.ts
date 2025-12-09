@@ -14,3 +14,12 @@ export type PostItem = {
     department?: { name?: string };
   };
 };
+
+
+export interface CreatePostPayload {
+  title: string;
+  content: string;
+  desc: string;
+  price: number | string;
+  images: string;
+}

@@ -103,6 +103,11 @@ class ApiClient {
   patch<TResponse, TBody = unknown>(path: string, body: TBody) {
     return this.request<TResponse, TBody>("PATCH", path, { body });
   }
+
+  post<TResponse, TBody = FormData>(path: string, body: TBody, signal?: AbortSignal) {
+    console.log(body, path)
+    return this.request<TResponse, TBody>("POST", path, {body, signal,});
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

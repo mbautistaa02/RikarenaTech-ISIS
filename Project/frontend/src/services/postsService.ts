@@ -1,5 +1,5 @@
 import type { Category } from "@/types/category";
-import type { PostItem } from "@/types/post";
+import type {CreatePostPayload, PostItem} from "@/types/post";
 
 import { apiClient } from "./apiClient";
 
@@ -30,10 +30,9 @@ export const getCategories = (signal?: AbortSignal) =>
   apiClient.get<Category[]>(`/posts/categories/`, signal);
 
 export const createMarketplacePost = (
-    body: FormData,
-    signal?: AbortSignal,
+    payload: CreatePostPayload,
 ) => {
-  return apiClient.post(`/posts/my-listings/`, body, signal);
+  return apiClient.post(`/posts/my-listings/`, payload);
 };
 
 export const getMyPosts = (signal?: AbortSignal) =>
