@@ -33,9 +33,10 @@ from rest_framework.views import APIView
 from posts.models import Post
 from posts.serializers import PostListSerializer
 
-from .models import Profile
+from .models import Department, Profile
 from .serializers import (
     CurrentUserSerializer,
+    DepartmentWithMunicipalitiesSerializer,
     ProfileSerializer,
     SellerUserSerializer,
     UserSerializer,
@@ -515,3 +516,24 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = PostListSerializer(posts_queryset, many=True)
         return Response(serializer.data)
+
+
+class DepartmentListApiView(APIView):
+    """Get all departments with their municipalities nested"""
+
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_summary="List departments with municipalities",
+        operation_description=(
+            "Returns all departments with their municipalities nested. "
+            "Includes municipality count for each department."
+        ),
+        tags=["Departments & Municipalities"],
+        responses={200: "DepartmentWithMunicipalitiesSerializer(many=True)"},
+    )
+    def get(self, request):
+        """Return all departments with nested municipalities."""
+        departments = Department.objects.prefetch_related("municipalities").all()
+        serializer = DepartmentWithMunicipalitiesSerializer(departments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

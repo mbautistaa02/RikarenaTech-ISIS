@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from posts.serializers import MunicipalitySerializer
 
-from .models import Profile
+from .models import Department, Municipality, Profile
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -92,3 +92,25 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "profile",
             "groups",
         ]
+
+
+class SimpleMunicipalitySerializer(serializers.ModelSerializer):
+    """Simple municipality serializer for nested use in departments"""
+
+    class Meta:
+        model = Municipality
+        fields = ["id", "name"]
+
+
+class DepartmentWithMunicipalitiesSerializer(serializers.ModelSerializer):
+    """Department serializer with nested municipalities"""
+
+    municipalities = SimpleMunicipalitySerializer(many=True, read_only=True)
+    municipality_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = ["id", "name", "municipalities", "municipality_count", "created_at"]
+
+    def get_municipality_count(self, obj):
+        return obj.municipalities.count()
