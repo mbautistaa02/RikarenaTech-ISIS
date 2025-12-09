@@ -1,8 +1,9 @@
 from django.contrib.auth.models import User
 from django.db import models
 
-from users.models import Municipality
 from simple_history.models import HistoricalRecords
+
+from users.models import Municipality
 
 # Create your models here.
 
