@@ -28,3 +28,17 @@ export const getMarketplacePost = (id: string, signal?: AbortSignal) =>
 
 export const getCategories = (signal?: AbortSignal) =>
   apiClient.get<Category[]>(`/posts/categories/`, signal);
+
+export const createMarketplacePost = (payload: FormData) => {
+  return apiClient.post(`/posts/my-listings/`, payload);
+};
+
+export const getMyPosts = (signal?: AbortSignal) =>
+  apiClient.get<PostItem[]>(`/posts/my-listings/`, signal);
+
+export const deleteMarketplacePost = (id: number, signal?: AbortSignal) => {
+  return apiClient.delete<{ success: boolean }>(
+    `/posts/my-listings/${id}/`,
+    signal,
+  );
+};

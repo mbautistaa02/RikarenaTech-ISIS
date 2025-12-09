@@ -9,7 +9,7 @@ import { Footer } from "./Components/Footer.tsx";
 import { Header } from "./Components/Header";
 import Alerts from "./pages/Alerts.tsx";
 import CreateCrop from "./pages/CreateCrop.tsx";
-import CreatePost from "./pages/CreatePost.tsx";
+import { CreatePost } from "./pages/CreatePost.tsx";
 import { EditPost } from "./pages/EditPost.tsx";
 import { Home } from "./pages/Home.tsx";
 import { MyProducts } from "./pages/MyProducts.tsx";

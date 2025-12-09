@@ -38,17 +38,17 @@ class ApiClient {
   ): Promise<TResponse> {
     const url = `${this.baseUrl}${path}`;
     const { body, headers, signal } = options;
-
+    const isFormData = body instanceof FormData;
     let res: Response;
     try {
       res = await fetch(url, {
         method,
         credentials: "include",
         headers: {
-          "Content-Type": "application/json",
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
           ...headers,
         },
-        body: body ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : body ? JSON.stringify(body) : undefined,
         signal,
       });
     } catch (err) {
@@ -102,6 +102,22 @@ class ApiClient {
 
   patch<TResponse, TBody = unknown>(path: string, body: TBody) {
     return this.request<TResponse, TBody>("PATCH", path, { body });
+  }
+
+  post<TResponse, TBody = FormData>(
+    path: string,
+    body: TBody,
+    signal?: AbortSignal,
+  ) {
+    // TBody tiene un valor predeterminado de FormData.
+    return this.request<TResponse, TBody>("POST", path, {
+      body,
+      signal,
+    });
+  }
+
+  delete<TResponse>(path: string, signal?: AbortSignal) {
+    return this.request<TResponse>("DELETE", path, { signal });
   }
 }
 
