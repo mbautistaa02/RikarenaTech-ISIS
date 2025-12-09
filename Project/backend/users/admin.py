@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Department, Municipality, Profile
+from .models import (
+    Department,
+    HistoricalDepartment,
+    HistoricalMunicipality,
+    HistoricalProfile,
+    Municipality,
+    Profile,
+)
 
 
 @admin.register(Department)
@@ -62,3 +69,96 @@ class ProfileAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+@admin.register(HistoricalDepartment)
+class HistoricalDepartmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "history_type",
+        "history_date",
+        "history_user",
+    )
+    list_filter = ("history_type", "history_date")
+    search_fields = ("name", "history_user__username")
+    readonly_fields = (
+        "name",
+        "created_at",
+        "updated_at",
+        "history_id",
+        "history_date",
+        "history_change_reason",
+        "history_type",
+        "history_user",
+    )
+    ordering = ("-history_date", "-history_id")
+
+
+@admin.register(HistoricalMunicipality)
+class HistoricalMunicipalityAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "department",
+        "history_type",
+        "history_date",
+        "history_user",
+    )
+    list_filter = ("department", "history_type", "history_date")
+    search_fields = ("name", "department__name", "history_user__username")
+    readonly_fields = (
+        "name",
+        "department",
+        "created_at",
+        "updated_at",
+        "history_id",
+        "history_date",
+        "history_change_reason",
+        "history_type",
+        "history_user",
+    )
+    ordering = ("-history_date", "-history_id")
+    list_select_related = ("department",)
+
+
+@admin.register(HistoricalProfile)
+class HistoricalProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "cellphone_number",
+        "role",
+        "municipality",
+        "history_type",
+        "history_date",
+        "history_user",
+    )
+    list_filter = (
+        "role",
+        "municipality",
+        "municipality__department",
+        "history_type",
+        "history_date",
+    )
+    search_fields = (
+        "user__username",
+        "user__email",
+        "cellphone_number",
+        "history_user__username",
+    )
+    readonly_fields = (
+        "user",
+        "cellphone_number",
+        "role",
+        "municipality",
+        "registration_date",
+        "picture_url",
+        "bio",
+        "created_at",
+        "updated_at",
+        "history_id",
+        "history_date",
+        "history_change_reason",
+        "history_type",
+        "history_user",
+    )
+    ordering = ("-history_date", "-history_id")
+    list_select_related = ("user", "municipality", "municipality__department")
