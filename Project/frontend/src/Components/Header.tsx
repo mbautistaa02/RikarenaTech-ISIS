@@ -170,8 +170,6 @@ export const Header: React.FC = () => {
           </a>
         </div>
 
-
-
         {/* Menú móvil (futuro) */}
         <div className="sm:hidden">
           <button className="text-[#171A1F] focus:outline-none">
