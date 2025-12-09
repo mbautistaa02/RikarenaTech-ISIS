@@ -1,7 +1,70 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
+interface UserGroup {
+  id: number;
+  name: string;
+}
+
+interface UserData {
+  groups: UserGroup[];
+}
+
 export const Header: React.FC = () => {
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
+  const [isModerator, setIsModerator] = useState(false);
+
+  useEffect(() => {
+    // Fetch user data to check if moderator
+    fetch("http://localhost:8000/api/users/me/", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((r) => r.json())
+      .then((response) => {
+        if (response.data && response.data.groups) {
+          const groups = response.data.groups;
+          const hasModerator = groups.some((group: UserGroup) => group.name === "moderators");
+          setIsModerator(hasModerator);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching user data:", error);
+      });
+
+    // Fetch unread alerts count
+    const lastVisitTimestamp = localStorage.getItem("lastAlertsVisit");
+    
+    fetch("http://localhost:8000/api/alerts/", {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((r) => r.json())
+      .then((response) => {
+        if (response.data && Array.isArray(response.data)) {
+          if (!lastVisitTimestamp) {
+            setUnreadAlertsCount(response.data.length);
+          } else {
+            const lastVisit = new Date(lastVisitTimestamp);
+            const newAlerts = response.data.filter((alert: any) => {
+              const alertCreated = new Date(alert.created_at);
+              return alertCreated > lastVisit;
+            });
+            setUnreadAlertsCount(newAlerts.length);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching alerts count:", error);
+      });
+  }, []);
+
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-sm z-50">
       <div className=" mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
@@ -104,7 +167,7 @@ export const Header: React.FC = () => {
             <NavLink
               to="/alerts"
               className={({ isActive }) =>
-                `text-sm font-[Inter] ${
+                `text-sm font-[Inter] relative ${
                   isActive
                     ? "text-[#448502] font-semibold"
                     : "text-[#171A1F] hover:text-[#3C7602]"
@@ -112,20 +175,27 @@ export const Header: React.FC = () => {
               }
             >
               Alertas
+              {unreadAlertsCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadAlertsCount}
+                </span>
+              )}
             </NavLink>
 
-            <NavLink
-              to="/moderador"
-              className={({ isActive }) =>
-                `text-sm font-[Inter] ${
-                  isActive
-                    ? "text-[#448502] font-semibold"
-                    : "text-[#171A1F] hover:text-[#3C7602]"
-                }`
-              }
-            >
-              Moderador
-            </NavLink>
+            {isModerator && (
+              <NavLink
+                to="/moderador"
+                className={({ isActive }) =>
+                  `text-sm font-[Inter] ${
+                    isActive
+                      ? "text-[#448502] font-semibold"
+                      : "text-[#171A1F] hover:text-[#3C7602]"
+                  }`
+                }
+              >
+                Moderador
+              </NavLink>
+            )}
           </nav>
         </div>
 
