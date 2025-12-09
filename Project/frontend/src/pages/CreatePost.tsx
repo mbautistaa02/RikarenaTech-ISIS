@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, {useState } from "react";
 
 import { showToast } from "@/lib/toast";
 import {createMarketplacePost } from "@/services/postsService.ts";
-import type { PostItem } from "@/types/post";
 
 
 type FormState = {
@@ -11,20 +10,24 @@ type FormState = {
   desc: string;
   price: number | string;
   images: string;
+  quantity: number | string;
+  unit_of_measure: string;
 };
 
 
 export const CreatePost: React.FC = () => {
-  const [showImage, setShowImage] = useState<boolean>(false);
-  const [postInfo, setPostInfo] = useState<PostItem | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImage, setShowImage] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState<FormState>({
     title: "",
     content: "",
     desc: "",
     price: "",
     images: "",
+    quantity: 0,
+    unit_of_measure: "unidad",
   });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -36,6 +39,8 @@ export const CreatePost: React.FC = () => {
         desc: form.desc,
         price: form.price,
         images: form.images,
+        quantity: form.quantity,
+        unit_of_measure: form.unit_of_measure,
       };
 
       const created = await createMarketplacePost(payload);
@@ -48,9 +53,10 @@ export const CreatePost: React.FC = () => {
     }
   };
 
+
   return (
-    <div className="w-full min-h-screen bg-gray-50 px-8  flex flex-col gap-10">
-      <div className="w-full min-h-screen bg-gray-50  py-10 flex flex-col gap-10">
+    <div className="w-full min-h-screen bg-gray-50 px-8 flex flex-col gap-10">
+      <div className="w-full min-h-screen bg-gray-50 py-10 flex flex-col gap-10">
         {/* Título */}
         <h1 className="font-[Outfit] text-[30px] font-bold text-neutral-900">
           Crear nuevo post de venta
@@ -60,6 +66,7 @@ export const CreatePost: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* ----------- COLUMNA IZQUIERDA ----------- */}
           <div className="bg-white shadow-sm rounded-xl p-6">
+
             <h2 className="font-[Outfit] text-[20px] font-semibold text-neutral-900">
               Imagen principal
             </h2>
@@ -68,39 +75,52 @@ export const CreatePost: React.FC = () => {
               Sube la imagen para tu publicación.
             </p>
 
-            {/* Botón mostrar/ocultar */}
-            <button
-              type="button"
-              onClick={() => setShowImage((prev) => !prev)}
-              className="mt-4 mb-4 bg-[#448502] text-white px-4 py-2 rounded-md font-[Inter] text-sm"
+            <div className="mt-2 border-2 border-neutral-300 border-dashed
+            bg-neutral-200/20 rounded-xl w-full h-[580px] flex flex-col
+            items-center justify-center relative"
             >
-              {showImage ? "Ocultar imagen" : "Mostrar imagen"}
-            </button>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  if (!e.target.files) return;
 
-            {/* Área de subida */}
-            <div className="mt-2 border-2 border-neutral-300 border-dashed bg-neutral-200/20 rounded-xl w-full h-[580px] flex flex-col items-center justify-center">
-              {showImage ? (
+                  const imgs = Array.from(e.target.files);
+                  const firstImage = imgs[0];
+
+                  setFiles(imgs);
+                  const imageUrl = URL.createObjectURL(firstImage);
+                  setSelectedImage(imageUrl);
+                  setShowImage(true);
+
+                  setForm((prev) => ({ ...prev, images: imageUrl }));
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+
+              {showImage && selectedImage ? (
                 <img
-                  src="/blueberry.png" // Cambia esto por tu imagen
+                  src={selectedImage}
                   alt="Preview"
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-xl pointer-events-none"
                 />
               ) : (
                 <>
                   <svg
-                    className="w-12 h-12 text-neutral-600"
+                    className="w-12 h-12 text-neutral-600 pointer-events-none"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
                     <path d="M12 16l4-5h-3V4h-2v7H8z" />
                   </svg>
-
-                  <p className="mt-4 font-[Inter] text-[16px] text-neutral-600 text-center">
-                    Arrastra aquí una imagen o haz clic para subir un archivo
+                  <p className="mt-4 font-[Inter] text-[16px] text-neutral-600 text-center pointer-events-none">
+                    Arrastra o haz clic para subir una imagen
                   </p>
                 </>
               )}
             </div>
+
           </div>
 
           {/* ----------- COLUMNA DERECHA ----------- */}
@@ -120,13 +140,11 @@ export const CreatePost: React.FC = () => {
               </label>
               <input
                 type="text"
-                className="
-                w-full h-[49px] px-3
-                font-[Inter] text-sm
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                hover:border-neutral-300
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
+                className="w-full h-[49px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.title}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, title: e.target.value }))
+                }
               />
             </div>
 
@@ -135,15 +153,25 @@ export const CreatePost: React.FC = () => {
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
                 Descripción
               </label>
-
               <textarea
-                className="
-                w-full h-[120px] px-3 py-2
-                font-[Inter] text-sm text-neutral-900
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                hover:border-neutral-300
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
+                className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.desc}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, desc: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="mt-6 flex flex-col gap-1">
+              <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                Contenido
+              </label>
+              <textarea
+                className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.content}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, content: e.target.value }))
+                }
               />
             </div>
 
@@ -152,38 +180,55 @@ export const CreatePost: React.FC = () => {
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
                 Precio
               </label>
-
               <input
                 type="number"
-                className="
-                w-full h-[49px] px-9
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                font-[Inter] text-sm
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
+                className="w-full h-[49px] px-9 bg-neutral-200/10 border border-neutral-300 rounded-md font-[Inter] text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.price}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, price: e.target.value }))
+                }
               />
-
-              {/* icono izquierda */}
               <span className="absolute left-3 top-[46px] font-bold text-neutral-600">
-                $
-              </span>
+              $
+            </span>
+            </div>
+
+            {/* ----- Campo: Cantidad ----- */}
+            <div className="mt-6 flex flex-col gap-1">
+              <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                Cantidad
+              </label>
+              <input
+                type="number"
+                className="w-full h-[49px] px-3 bg-neutral-200/10 border border-neutral-300 rounded-md font-[Inter] text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.quantity}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, quantity: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="mt-6 flex flex-col gap-1">
+              <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                Unidad
+              </label>
+              <input
+                type="text"
+                className="w-full h-[49px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                value={form.unit_of_measure}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, unit_of_measure: e.target.value }))
+                }
+              />
             </div>
 
             {/* ----- Label categoría ----- */}
             <p className="mt-8 font-[Inter] text-sm font-medium text-neutral-900">
               Categoría
             </p>
-
-            {/* ----- Dropdown categoria ----- */}
             <div className="mt-3 relative">
               <select
-                className="
-                w-full h-[40px] px-3
-                font-[Inter] text-sm
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
-              >
+                className="w-full h-[40px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-300/30">
                 <option>Seleccionar categoría</option>
                 <option>Frutas</option>
                 <option>Verduras</option>
@@ -194,14 +239,7 @@ export const CreatePost: React.FC = () => {
             {/* ----- Botón crear post ----- */}
             <button
               onClick={handleSave}
-              className="
-              w-full h-[40px] mt-8
-              bg-[#448502] text-white rounded-md
-              font-[Inter] font-bold text-sm
-              hover:bg-[#3C7602]
-              active:bg-[#2F5D01]
-              disabled:opacity-40 disabled:pointer-events-none
-            "
+              className="w-full h-[40px] mt-8 bg-[#448502] text-white rounded-md font-[Inter] font-bold text-sm hover:bg-[#3C7602] active:bg-[#2F5D01] disabled:opacity-40 disabled:pointer-events-none"
             >
               Crear publicación
             </button>

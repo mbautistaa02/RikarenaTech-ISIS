@@ -22,4 +22,5 @@ export interface CreatePostPayload {
   desc: string;
   price: number | string;
   images: string;
+  quantity: number;
 }

@@ -105,8 +105,11 @@ class ApiClient {
   }
 
   post<TResponse, TBody = FormData>(path: string, body: TBody, signal?: AbortSignal) {
-    console.log(body, path)
-    return this.request<TResponse, TBody>("POST", path, {body, signal,});
+    // TBody tiene un valor predeterminado de FormData.
+    return this.request<TResponse, TBody>("POST", path, {
+      body,
+      signal,
+    });
   }
 }
 
