@@ -36,6 +36,7 @@ DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1")
 
 # Frontend URL Configuration
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # Dynamic ALLOWED_HOSTS configuration
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
@@ -368,13 +369,16 @@ SESSION_COOKIE_HTTPONLY = False  # Allow JavaScript access for development
 SESSION_COOKIE_SAMESITE = "Lax"  # Allow cross-site requests for authentication
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request
+SESSION_COOKIE_NAME = "swe2_sessionid"
 
 # CSRF Configuration for Subdomains
 CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_NAME = "swe2_csrftoken"
 CSRF_TRUSTED_ORIGINS = [
     FRONTEND_URL,
+    BACKEND_URL,
 ]
 
 # Django Simple History Configuration
