@@ -260,11 +260,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
             )
 
         # Set initial status based on user permissions
-        user = request.user
-        if user.groups.filter(name="moderators").exists() or user.is_staff:
-            validated_data["status"] = Post.StatusChoices.ACTIVE
-        else:
-            validated_data["status"] = Post.StatusChoices.PENDING_REVIEW
+        validated_data["status"] = Post.StatusChoices.ACTIVE
 
         # Create post
         post = Post.objects.create(**validated_data)

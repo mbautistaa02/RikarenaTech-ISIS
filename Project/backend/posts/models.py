@@ -87,7 +87,7 @@ class Post(models.Model):
     status = models.CharField(
         max_length=20,
         choices=StatusChoices.choices,
-        default=StatusChoices.PENDING_REVIEW,
+        default=StatusChoices.ACTIVE,
     )
     visibility = models.CharField(
         max_length=10,
