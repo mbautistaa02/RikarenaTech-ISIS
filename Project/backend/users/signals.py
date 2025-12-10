@@ -1,12 +1,12 @@
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.contrib.auth.signals import user_logged_in
 from django.db import OperationalError, ProgrammingError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from allauth.socialaccount.signals import pre_social_login, social_account_added
 from allauth.socialaccount.models import SocialAccount
-from django.contrib.auth.signals import user_logged_in
+from allauth.socialaccount.signals import pre_social_login, social_account_added
 
 from .models import Profile
 
