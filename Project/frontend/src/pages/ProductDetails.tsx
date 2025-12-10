@@ -181,7 +181,7 @@ export default function ProductDetails() {
             className=" mt-6 w-full max-w-[592px] h-[48px] px-3 border border-[#448502] rounded-md justify-center
         font-[Inter] text-[16px] lg:text-[18px] font-semibold text-[#448502] bg-neutral-50 hover:bg-neutral-100 active:bg-white"
           >
-            Contactar al vendedor
+            Contactar al vendedor (proximamente)
           </button>
         </div>
       </div>
