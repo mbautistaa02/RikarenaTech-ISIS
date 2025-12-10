@@ -2,9 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { showToast } from "@/lib/toast";
-import { createCrop, getProducts } from "@/services/cropsService";
-import { FERTILIZER_TYPES, IRRIGATION_METHODS } from "@/types/crop";
-import type { Product } from "@/types/crop";
+import {
+  createCrop,
+  getProducts,
+  getIrrigationMethods,
+  getFertilizerTypes,
+} from "@/services/cropsService";
+import type { ProductOption } from "@/services/cropsService";
 
 type FormState = {
   product: number | "";
@@ -20,7 +24,7 @@ type FormState = {
 
 export default function CreateCrop() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState<FormState>({
     product: "",
@@ -40,27 +44,22 @@ export default function CreateCrop() {
     const loadProducts = async () => {
       try {
         console.log("Cargando productos...");
-        const data = await getProducts(controller.signal);
-        console.log("Productos cargados:", data);
-        if (Array.isArray(data) && data.length > 0) {
-          setProducts(data);
-          // Preseleccionar automáticamente el primer producto (ID 1)
-          setForm((prev) => ({
-            ...prev,
-            product: data[0].product_id,
-          }));
+        const productsList = await getProducts(controller.signal);
+        console.log("Productos cargados:", productsList);
+
+        if (productsList && productsList.length > 0) {
+          setProducts(productsList);
         } else {
-          console.warn("No se encontraron productos o respuesta vacía");
+          console.warn("No se encontraron productos");
           setProducts([]);
         }
       } catch (err) {
-        if (!controller.signal.aborted) {
-          console.error("Error fetching products:", err);
-          showToast("error", "Error al cargar los productos");
-          setProducts([]);
-        }
+        console.error("Error fetching products:", err);
+        showToast("error", "Error al cargar los productos");
+        setProducts([]);
       }
     };
+
     loadProducts();
     return () => controller.abort();
   }, []);
@@ -137,7 +136,7 @@ export default function CreateCrop() {
 
       // Limpiar el formulario
       setForm({
-        product: products.length > 0 ? products[0].product_id : "",
+        product: "",
         start_date: "",
         harvest_date: "",
         area: "",
@@ -198,9 +197,10 @@ export default function CreateCrop() {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/30
                 "
                 >
+                  <option value="">-- Seleccionar un producto --</option>
                   {products.map((product) => (
-                    <option key={product.product_id} value={product.product_id}>
-                      {product.name}
+                    <option key={product.id} value={product.id}>
+                      {product.label}
                     </option>
                   ))}
                 </select>
@@ -344,8 +344,8 @@ export default function CreateCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               >
-                {FERTILIZER_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
+                {getFertilizerTypes().map((type) => (
+                  <option key={type.id} value={type.id}>
                     {type.label}
                   </option>
                 ))}
@@ -369,8 +369,8 @@ export default function CreateCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               >
-                {IRRIGATION_METHODS.map((method) => (
-                  <option key={method.value} value={method.value}>
+                {getIrrigationMethods().map((method) => (
+                  <option key={method.id} value={method.id}>
                     {method.label}
                   </option>
                 ))}
