@@ -175,6 +175,7 @@ export const Profile: React.FC = () => {
             type="text"
             className="w-full h-[45px] mt-1 px-3 border border-neutral-300 rounded-md"
             value={form.username}
+            readOnly
             onChange={(e) =>
               setForm((prev) => ({ ...prev, username: e.target.value }))
             }

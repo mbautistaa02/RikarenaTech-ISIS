@@ -1,15 +1,138 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
+import { showToast } from "@/lib/toast.ts";
+import {
+  getCategories,
+  getMarketplacePost,
+  patchMyPost,
+} from "@/services/postsService.ts";
+import type { Category } from "@/types/category.ts";
+import type { PostItem } from "@/types/post.ts";
+
+type FormState = {
+  title: string;
+  content: string;
+  price: number | string;
+  images: string;
+  quantity: number | string;
+  unit_of_measure: string;
+};
 export function EditPost() {
-  const [showImage, setShowImage] = useState<boolean>(false);
   const navigate = useNavigate();
+  const [item, setItem] = useState<PostItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [files] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | "">("");
   const { id } = useParams();
-  const [item, setItem] = useState(null);
+  const [form, setForm] = useState<FormState>({
+    title: "",
+    content: "",
+    price: "",
+    images: "",
+    quantity: 0,
+    unit_of_measure: "unidad",
+  });
   useEffect(() => {
-    fetch(`https://6917819021a96359486d20a1.mockapi.io/api/v1/products/${id}`)
-      .then((r) => r.json())
-      .then((data) => setItem(data));
+    if (!id) return;
+    const controller = new AbortController();
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getMarketplacePost(id, controller.signal);
+        setItem(data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching product detail", err);
+          setError("No se pudo cargar el producto.");
+          setItem(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+    load();
+    return () => controller.abort();
   }, [id]);
+  useEffect(() => {
+    if (item) {
+      setForm({
+        title: item.title,
+        content: String(item.content),
+        price: String(item.price),
+        quantity: String(item.quantity),
+        unit_of_measure: String(item.unit_of_measure),
+        images: "",
+      });
+    }
+  }, [item]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadCategories = async () => {
+      try {
+        const data = await getCategories(controller.signal);
+        setCategories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching categories", err);
+          setCategories([]);
+        }
+      }
+    };
+    loadCategories();
+    return () => controller.abort();
+  }, []);
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    // Si el usuario elige "Todas" o vacío, ponemos null o vacío según lo que espere tu backend
+    setSelectedCategory(value === "" ? "" : Number(value));
+  };
+  const handleSave = async () => {
+    // Crear FormData REAL con los archivos
+    const formData = new FormData();
+
+    // Añadir los campos de texto
+    formData.append("title", form.title);
+    formData.append("content", form.content);
+    formData.append("price", String(form.price));
+    formData.append("quantity", String(form.quantity));
+    formData.append("unit_of_measure", form.unit_of_measure);
+    formData.append("category", String(selectedCategory));
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    try {
+      if (!id) return;
+      await patchMyPost(id, formData);
+      showToast("success", "Post editado correctamente.");
+    } catch (err: any) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      showToast("error", "Error al crear el post: " + message);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-10 text-center">Cargando...</div>;
+  }
+
+  if (error) {
+    return <div className="p-10 text-center text-red-600">{error}</div>;
+  }
+
+  if (!item) {
+    return (
+      <div className="p-10 text-center text-neutral-600">
+        Producto no encontrado.
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8  flex flex-col">
       <div className="w-full py-3 ">
@@ -36,24 +159,15 @@ export function EditPost() {
               </h2>
 
               <p className="font-[Inter] text-[14px] text-neutral-600 mt-2">
-                Edita la imagen para tu publicación.
+                Esta es la imagen de tu publicación.
               </p>
-
-              {/* Botón mostrar/ocultar */}
-              <button
-                type="button"
-                onClick={() => setShowImage((prev) => !prev)}
-                className="mt-4 mb-4 bg-[#448502] text-white px-4 py-2 rounded-md font-[Inter] text-sm"
-              >
-                {showImage ? "Ocultar imagen" : "Mostrar imagen"}
-              </button>
 
               {/* Área de subida */}
               <div className="mt-2 border-2 border-neutral-300 border-dashed bg-neutral-200/20 rounded-xl w-full h-[580px] flex flex-col items-center justify-center">
-                {showImage ? (
+                {item.images && item.images.length > 0 ? (
                   <img
-                    src={item["image"] || "/blueberry.png"} // Cambia esto por tu imagen
-                    alt={item["name"]}
+                    src={item.images[0].image}
+                    alt={item.title}
                     className="w-full h-full object-cover rounded-xl"
                   />
                 ) : (
@@ -91,7 +205,10 @@ export function EditPost() {
                 </label>
                 <input
                   type="text"
-                  defaultValue="hola"
+                  defaultValue={item.title}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   className="
                 w-full h-[49px] px-3
                 font-[Inter] text-sm
@@ -109,6 +226,10 @@ export function EditPost() {
                 </label>
 
                 <textarea
+                  defaultValue={item.content}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, content: e.target.value }))
+                  }
                   className="
                 w-full h-[120px] px-3 py-2
                 font-[Inter] text-sm text-neutral-900
@@ -116,7 +237,6 @@ export function EditPost() {
                 hover:border-neutral-300
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
-                  defaultValue="desc"
                 />
               </div>
 
@@ -125,48 +245,75 @@ export function EditPost() {
                 <label className="font-[Inter] text-sm font-medium text-neutral-900">
                   Precio
                 </label>
-
                 <input
                   type="number"
-                  defaultValue="precio"
-                  className="
-                w-full h-[49px] px-9
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                font-[Inter] text-sm
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
+                  className="w-full h-[49px] px-9 bg-neutral-200/10 border border-neutral-300 rounded-md font-[Inter] text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                  defaultValue={item.price}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, price: e.target.value }))
+                  }
                 />
-
-                {/* icono izquierda */}
                 <span className="absolute left-3 top-[46px] font-bold text-neutral-600">
                   $
                 </span>
+              </div>
+
+              {/* ----- Campo: Cantidad ----- */}
+              <div className="mt-6 flex flex-col gap-1">
+                <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  className="w-full h-[49px] px-3 bg-neutral-200/10 border border-neutral-300 rounded-md font-[Inter] text-sm focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                  defaultValue={item.quantity}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, quantity: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="mt-6 flex flex-col gap-1">
+                <label className="font-[Inter] text-sm font-medium text-neutral-900">
+                  Unidad
+                </label>
+                <input
+                  type="text"
+                  className="w-full h-[49px] px-3 font-[Inter] text-sm bg-neutral-200/10 border border-neutral-300 rounded-md hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-300/30"
+                  defaultValue={item.unit_of_measure}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      unit_of_measure: e.target.value,
+                    }))
+                  }
+                />
               </div>
 
               {/* ----- Label categoría ----- */}
               <p className="mt-8 font-[Inter] text-sm font-medium text-neutral-900">
                 Categoría
               </p>
-
-              {/* ----- Dropdown categoria ----- */}
               <div className="mt-3 relative">
                 <select
-                  className="
-                w-full h-[40px] px-3
-                font-[Inter] text-sm
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
+                  value={
+                    selectedCategory === "" ? "" : String(selectedCategory)
+                  }
+                  onChange={handleCategoryChange}
+                  className="appearance-none w-[200px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none"
                 >
-                  <option>Seleccionar categoría</option>
-                  <option>Frutas</option>
-                  <option>Verduras</option>
-                  <option>Lácteos</option>
+                  <option value="">Todas</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* ----- Botón crear post ----- */}
+              {/* ----- Botón editar post ----- */}
               <button
+                onClick={handleSave}
                 className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md
@@ -176,7 +323,7 @@ export function EditPost() {
               disabled:opacity-40 disabled:pointer-events-none
             "
               >
-                Crear publicación
+                Editar publicación
               </button>
             </div>
           </div>

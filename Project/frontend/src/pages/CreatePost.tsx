@@ -52,11 +52,6 @@ export const CreatePost: React.FC = () => {
     setSelectedCategory(value === "" ? "" : Number(value));
   };
   const handleSave = async () => {
-    if (files.length === 0) {
-      showToast("error", "Por favor sube al menos una imagen");
-      return;
-    }
-
     // Crear FormData REAL con los archivos
     const formData = new FormData();
 

@@ -134,54 +134,56 @@ export const MyProducts: React.FC = () => {
       {/* Mis productos desde MockAPI */}
       <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {items.map((item) => (
-            <div
-              key={item["id"]}
-              className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
-            >
-              {/* Imagen */}
-              <img
-                src={
-                  item.images && item.images.length > 0
-                    ? item.images[0].image
-                    : "/blueberry.png"
-                }
-                alt={item.title}
-                className="w-full h-48 object-cover"
-              />
+          {items
+            .filter((item) => item.is_available)
+            .map((item) => (
+              <div
+                key={item["id"]}
+                className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
+              >
+                {/* Imagen */}
+                <img
+                  src={
+                    item.images && item.images.length > 0
+                      ? item.images[0].image
+                      : "/blueberry.png"
+                  }
+                  alt={item.title}
+                  className="w-full h-48 object-cover"
+                />
 
-              {/* Contenido */}
-              <div className="p-4">
-                <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                  {item.title}
-                </h3>
+                {/* Contenido */}
+                <div className="p-4">
+                  <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
+                    {item.title}
+                  </h3>
 
-                <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                  {item.desc}
-                </p>
+                  <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
+                    {item.desc}
+                  </p>
 
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-xl font-bold text-green-600">
-                    ${item.price}
-                  </span>
-                  <div>
-                    <button
-                      className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Eliminar
-                    </button>
-                    <Link
-                      to={`/edit_post/${item["id"]}`}
-                      className="bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
-                    >
-                      Editar
-                    </Link>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-xl font-bold text-green-600">
+                      ${item.price}
+                    </span>
+                    <div>
+                      <button
+                        className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Eliminar
+                      </button>
+                      <Link
+                        to={`/edit_post/${item["id"]}`}
+                        className="bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                      >
+                        Editar
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 

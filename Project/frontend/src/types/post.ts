@@ -3,11 +3,17 @@ export type PostImage = {
 };
 
 export type PostItem = {
+  is_available?: boolean;
+  category?: {
+    id?: string | number;
+  };
   id: number;
   title: string;
   content?: string;
   desc?: string;
   price?: number | string;
+  quantity?: number | string;
+  unit_of_measure?: string;
   images?: PostImage[];
   municipality?: {
     name?: string;
