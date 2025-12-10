@@ -8,8 +8,11 @@ import {
   deleteMyCrop,
   getProductById,
 } from "@/services/cropsService.ts";
-import { getMyPosts } from "@/services/postsService.ts";
-import { deleteMarketplacePost } from "@/services/postsService.ts";
+import {
+  deleteMarketplacePost,
+  getMyPosts,
+  markPostAsSold,
+} from "@/services/postsService.ts";
 import { getCurrentUserProfile } from "@/services/profileService";
 import type { CropItem } from "@/types/crop.ts";
 import { getFertilizerLabel, getIrrigationLabel } from "@/types/crop.ts";
@@ -86,6 +89,26 @@ export const MyProducts: React.FC = () => {
     } catch (err) {
       console.error("Error eliminando el post:", err);
       showToast("error", "No se pudo eliminar el producto.");
+    }
+  };
+
+  const handleMarkAsSold = async (id: number) => {
+    const confirmed = await confirmToast("¿Marcar este producto como vendido?");
+    if (!confirmed) return;
+
+    try {
+      await markPostAsSold(id);
+      showToast("success", "Producto marcado como vendido.");
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, status: "sold", is_available: false }
+            : item,
+        ),
+      );
+    } catch (err) {
+      console.error("Error marcando como vendido:", err);
+      showToast("error", "No se pudo marcar el producto como vendido.");
     }
   };
 
@@ -197,7 +220,7 @@ export const MyProducts: React.FC = () => {
       <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {items
-            .filter((item) => item.is_available)
+            .filter((item) => item.is_available !== false)
             .map((item) => (
               <div
                 key={item["id"]}
@@ -215,32 +238,88 @@ export const MyProducts: React.FC = () => {
                 />
 
                 {/* Contenido */}
-                <div className="p-4">
-                  <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
+                <div className="p-4 flex flex-col gap-3">
+                  <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900">
                     {item.title}
                   </h3>
 
-                  <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
+                  <p className="font-[Inter] text-[14px] text-neutral-600">
                     {item.desc}
                   </p>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-xl font-bold text-green-600">
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xl font-bold text-green-600 leading-none">
                       ${item.price}
                     </span>
-                    <div>
+                    <div className="flex flex-wrap gap-2 justify-end">
                       <button
-                        className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
-                        onClick={() => handleDelete(item.id)}
+                        title={
+                          item.status === "sold"
+                            ? "Producto vendido"
+                            : "Marcar como vendido"
+                        }
+                        className="h-10 px-3 bg-[#E5E7EB] hover:bg-[#D1D5DB] active:bg-[#9CA3AF] text-[#111827] border border-transparent rounded-lg transition flex items-center justify-center"
+                        onClick={() => handleMarkAsSold(item.id)}
+                        disabled={item.status === "sold"}
                       >
-                        Eliminar
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
                       </button>
                       <Link
                         to={`/edit_post/${item["id"]}`}
-                        className="bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01] text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                        title="Editar publicación"
+                        className="h-10 px-3 bg-[#5bc786] hover:bg-[#43ae6e] active:bg-[#43ae6e] text-white border border-transparent rounded-lg transition flex items-center justify-center"
                       >
-                        Editar
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L7.5 21H3v-4.5L16.732 3.732z"
+                          />
+                        </svg>
                       </Link>
+                      <button
+                        title="Eliminar publicación"
+                        className="h-10 px-3 bg-[#DC2626] hover:bg-[#B91C1C] active:bg-[#991B1B] text-white border border-transparent rounded-lg transition flex items-center justify-center"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m-3 0h14"
+                          />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>

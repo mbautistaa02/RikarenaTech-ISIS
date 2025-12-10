@@ -60,7 +60,6 @@ class Post(models.Model):
 
     class StatusChoices(models.TextChoices):
         PENDING_REVIEW = "pending_review", "Pending Review"
-        APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
         ACTIVE = "active", "Active"
         SOLD = "sold", "Sold"

@@ -2,6 +2,7 @@
 Comprehensive middleware for handling errors and security
 """
 
+import ipaddress
 import logging
 
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
@@ -138,7 +139,54 @@ class ErrorHandlingMiddleware:
 
     def _get_client_ip(self, request):
         """Get the client's IP address from request headers"""
+
+        def _first_public_ip(candidates):
+            """Return the first public-looking IP from a list of candidates"""
+            for raw_ip in candidates:
+                if not raw_ip:
+                    continue
+                ip_only = raw_ip.split(":")[0].strip()  # drop port if present
+                try:
+                    ip_obj = ipaddress.ip_address(ip_only)
+                except ValueError:
+                    continue
+                if not (
+                    ip_obj.is_private
+                    or ip_obj.is_loopback
+                    or ip_obj.is_reserved
+                    or ip_obj.is_unspecified
+                ):
+                    return ip_only
+            # fallback to the first non-empty candidate even if private
+            for raw_ip in candidates:
+                if raw_ip:
+                    return raw_ip.split(":")[0].strip()
+            return None
+
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            return x_forwarded_for.split(",")[0].strip()
+            ip = _first_public_ip([ip.strip() for ip in x_forwarded_for.split(",")])
+            if ip:
+                return ip
+
+        x_real_ip = request.META.get("HTTP_X_REAL_IP")
+        if x_real_ip:
+            ip = _first_public_ip([x_real_ip.strip()])
+            if ip:
+                return ip
+
+        forwarded = request.META.get("HTTP_FORWARDED")
+        if forwarded:
+            forwarded_ips = []
+            for entry in forwarded.split(","):
+                for token in entry.split(";"):
+                    token = token.strip()
+                    if token.lower().startswith("for="):
+                        candidate = token[4:].strip().strip('"')
+                        candidate = candidate.strip("[]")  # remove brackets for IPv6
+                        forwarded_ips.append(candidate)
+            ip = _first_public_ip(forwarded_ips)
+            if ip:
+                return ip
+
         return request.META.get("REMOTE_ADDR", "Unknown")

@@ -13,6 +13,17 @@ export const ProductsBySeller = () => {
   const [items, setItems] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingSeller, setLoadingSeller] = useState(false);
+  const statusStyles: Record<string, { label: string; classes: string }> = {
+    active: { label: "Disponible", classes: "bg-green-100 text-green-800" },
+    sold: { label: "Vendido", classes: "bg-neutral-200 text-neutral-800" },
+    expired: { label: "Expirado", classes: "bg-neutral-200 text-neutral-800" },
+    pending_review: {
+      label: "En revisión",
+      classes: "bg-amber-100 text-amber-800",
+    },
+    rejected: { label: "Rechazado", classes: "bg-red-100 text-red-800" },
+    paused: { label: "Pausado", classes: "bg-neutral-200 text-neutral-800" },
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -63,6 +74,25 @@ export const ProductsBySeller = () => {
   }, [username]);
   const navigate = useNavigate();
   const sellerImage = seller?.profile?.picture_url || defaultAvatar;
+
+  const renderStatusBadge = (status?: string) => {
+    if (!status) return null;
+    const info = statusStyles[status.toLowerCase()];
+    if (!info) return null;
+    return (
+      <span
+        className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${info.classes}`}
+      >
+        {info.label}
+      </span>
+    );
+  };
+
+  const filteredItems = items.filter(
+    (item) =>
+      (item.visibility === "public" || item.visibility === undefined) &&
+      item.status !== "rejected",
+  );
   return (
     <section className="w-full bg-neutral-50 flex flex-col items-center">
       <div className="w-full py-3 px-20">
@@ -112,16 +142,17 @@ export const ProductsBySeller = () => {
               Cargando publicaciones...
             </div>
           )}
-          {!loading && items.length === 0 && (
+          {!loading && filteredItems.length === 0 && (
             <div className="text-neutral-500 text-center col-span-full">
               No se encontraron publicaciones.
             </div>
           )}
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div
               key={item.id}
               className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
             >
+              {renderStatusBadge(item.status)}
               {/* Imagen */}
               <img
                 src={
