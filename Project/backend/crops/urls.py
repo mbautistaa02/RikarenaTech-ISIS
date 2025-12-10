@@ -7,9 +7,9 @@ from .views import CropViewSet, ProductViewSet
 # Main router for this app
 router = DefaultRouter()
 
-# Register CRUD endpoints
-router.register("", CropViewSet, basename="")
+# Register endpoints
 router.register("products", ProductViewSet, basename="products")
+router.register("", CropViewSet, basename="crops")
 
 urlpatterns = [
     path("", include(router.urls)),

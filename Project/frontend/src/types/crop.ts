@@ -57,3 +57,17 @@ export const getIrrigationLabel = (value: string | undefined): string => {
   const method = IRRIGATION_METHODS.find((m) => m.value === value);
   return method ? method.label : value;
 };
+
+// Obtener nombre del producto desde CropItem
+export const getProductName = (
+  product: number | Product | undefined,
+): string => {
+  if (!product) return "Sin producto";
+  if (typeof product === "object" && product.name) {
+    return product.name;
+  }
+  if (typeof product === "number") {
+    return `Producto #${product}`;
+  }
+  return "Sin producto";
+};

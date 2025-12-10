@@ -3,7 +3,11 @@ import { Link } from "react-router-dom";
 
 import { confirmToast } from "@/lib/button_toast.tsx";
 import { showToast } from "@/lib/toast.ts";
-import { getMyCrops, deleteMyCrop } from "@/services/cropsService.ts";
+import {
+  getMyCrops,
+  deleteMyCrop,
+  getProductById,
+} from "@/services/cropsService.ts";
 import {
   deleteMarketplacePost,
   getMyPosts,
@@ -125,6 +129,7 @@ export const MyProducts: React.FC = () => {
     }
   };
   const [crops, setCrops] = useState<CropItem[]>([]);
+  const [productNames, setProductNames] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -135,6 +140,27 @@ export const MyProducts: React.FC = () => {
         console.log("Crops obtenidos:", data);
         if (Array.isArray(data)) {
           setCrops(data);
+
+          // Obtener nombres de productos para cada crop
+          const names: Record<number, string> = {};
+          for (const crop of data) {
+            if (typeof crop.product === "number") {
+              // Si product es un número, obtener el nombre del API
+              const productInfo = await getProductById(
+                crop.product,
+                controller.signal,
+              );
+              if (productInfo) {
+                names[crop.product] = productInfo.label;
+              } else {
+                names[crop.product] = `Producto #${crop.product}`;
+              }
+            } else if (typeof crop.product === "object" && crop.product.name) {
+              // Si product ya es un objeto con nombre, usar ese
+              names[crop.product.product_id] = crop.product.name;
+            }
+          }
+          setProductNames(names);
         } else {
           setCrops([]);
         }
@@ -321,9 +347,9 @@ export const MyProducts: React.FC = () => {
               {/* Contenido */}
               <div className="w-full">
                 <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-2">
-                  {typeof crop.product === "object"
-                    ? crop.product.name
-                    : `Producto #${crop.product}`}
+                  {typeof crop.product === "number"
+                    ? productNames[crop.product] || `Producto #${crop.product}`
+                    : crop.product.name || "Sin producto"}
                 </h3>
 
                 <p className="font-[Inter] text-[14px] text-neutral-600 mb-3">
