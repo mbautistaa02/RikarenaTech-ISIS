@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  migrations
+  | __pycache__
+  | .git
+  | .venv
+  | staticfiles
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_django = "django"
+known_first_party = ["config", "posts", "authentication"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+skip_glob = ["*/migrations/*.py"]

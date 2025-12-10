@@ -1,0 +1,54 @@
+[Unit]
+Description=SWE 2 ISIS Backend (Django + Gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=isis-backend:latest
+ContainerName=isis-backend
+Network=swe2
+
+# Expose backend internally (reverse proxy should listen on the host)
+PublishPort=127.0.0.1:3003:3003
+
+# Volumes for logs and static files (replace host paths)
+Volume=/path/to/host/isis-backend/logs:/app/logs:Z,U
+Volume=/path/to/host/isis-backend/staticfiles:/app/staticfiles:Z,U
+
+ShmSize=256m
+Timezone=UTC
+
+# Django environment
+Environment=PORT=3003
+Environment=SECRET_KEY=changeme-secret
+Environment=DEBUG=0
+Environment=ALLOWED_HOSTS=api.example.com
+Environment=FRONTEND_URL=https://app.example.com
+Environment=BACKEND_URL=https://api.example.com
+
+# PostgreSQL connection (internal network swe2)
+Environment=DATABASE_ENGINE=django.db.backends.postgresql
+Environment=DATABASE_NAME=isisdb
+Environment=DATABASE_USER=isisuser
+Environment=DATABASE_PASSWORD=changeme-db-password
+Environment=DATABASE_HOST=postgres18
+Environment=DATABASE_PORT=5432
+
+# Locale
+Environment=LANGUAGE_CODE=en-us
+Environment=TIME_ZONE=UTC
+
+# S3 / R2 (optional)
+Environment=AWS_S3_ENDPOINT_URL=https://example.r2.cloudflarestorage.com
+Environment=AWS_S3_CUSTOM_DOMAIN=cdn.example.com
+Environment=AWS_ACCESS_KEY_ID=changeme-access-key
+Environment=AWS_SECRET_ACCESS_KEY=changeme-secret-key
+Environment=AWS_STORAGE_BUCKET_NAME=swe2-isis-prod
+Environment=AWS_S3_REGION_NAME=auto
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

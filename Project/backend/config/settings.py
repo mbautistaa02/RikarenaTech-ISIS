@@ -10,15 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -26,30 +27,55 @@ load_dotenv(BASE_DIR / '.env')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(
-    'SECRET_KEY',
-    'django-insecure-(anfme8born&0v$j3l9b1_ha&qsowb^nez#wr8n=@e9s%sbk8%'
+    "SECRET_KEY", "django-insecure-(anfme8born&0v$j3l9b1_ha&qsowb^nez#wr8n=@e9s%sbk8%"
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1')
+DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1")
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Frontend URL Configuration
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+# Dynamic ALLOWED_HOSTS configuration
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+# Add frontend domain to ALLOWED_HOSTS if it's not localhost
+from urllib.parse import urlparse
+
+frontend_parsed = urlparse(FRONTEND_URL)
+if frontend_parsed.hostname and frontend_parsed.hostname not in [
+    "localhost",
+    "127.0.0.1",
+]:
+    if frontend_parsed.hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(frontend_parsed.hostname)
+
+    # Also add parent domain for subdomain support
+    domain_parts = frontend_parsed.hostname.split(".")
+    if len(domain_parts) >= 2:
+        parent_domain = ".".join(domain_parts[-2:])
+        if f".{parent_domain}" not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(f".{parent_domain}")
 
 # Oauth2 Configuration
 
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
-GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
+GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID")
+GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET")
 
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "AuthenticationProject", # Integracion con OAuth 2 con Google
+    "authentication",  # Integracion con OAuth 2 con Google
+    "posts.apps.PostsConfig",  # App de posts con configuración
+    "docs",  # API documentation with Swagger
     "rest_framework",
     "django.contrib.sites",
     "allauth",
@@ -57,19 +83,28 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "rest_framework_simplejwt",
+    "drf_yasg",  # Swagger/OpenAPI documentation
+    "users.apps.UsersConfig",
+    "storages",  # Django-storages for automatic S3/R2 uploads
+    "alerts.apps.AlertsConfig",
+    "crops.apps.CropsConfig",
+    "simple_history",
 ]
 
 SITE_ID = 1
 
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",  # DISABLED
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -78,7 +113,9 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates'],  # Add project-level templates dir (e.g., backend/templates)
+        "DIRS": [
+            BASE_DIR / "templates"
+        ],  # Add project-level templates dir (e.g., backend/templates)
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -98,14 +135,18 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv('DATABASE_ENGINE', 'django.db.backends.sqlite3'),
-        "NAME": BASE_DIR / os.getenv('DATABASE_NAME', 'db.sqlite3'),
-        "USER": os.getenv('DATABASE_USER', ''),
-        "PASSWORD": os.getenv('DATABASE_PASSWORD', ''),
-        "HOST": os.getenv('DATABASE_HOST', ''),
-        "PORT": os.getenv('DATABASE_PORT', ''),
+        "ENGINE": os.getenv("DATABASE_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.getenv("DATABASE_NAME", "db.sqlite3"),
+        "USER": os.getenv("DATABASE_USER", ""),
+        "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
+        "HOST": os.getenv("DATABASE_HOST", ""),
+        "PORT": os.getenv("DATABASE_PORT", ""),
     }
 }
+
+# For SQLite, keep the DB file inside BASE_DIR
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    DATABASES["default"]["NAME"] = BASE_DIR / DATABASES["default"]["NAME"]
 
 
 # Password validation
@@ -119,22 +160,13 @@ AUTH_PASSWORD_VALIDATORS = [
         ),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "MinimumLengthValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation." "MinimumLengthValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "CommonPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation." "CommonPasswordValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation."
-            "NumericPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation." "NumericPasswordValidator"),
     },
 ]
 
@@ -142,9 +174,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = os.getenv('LANGUAGE_CODE', 'en-us')
+LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en-us")
 
-TIME_ZONE = os.getenv('TIME_ZONE', 'UTC')
+TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
 
 USE_I18N = True
 
@@ -154,7 +186,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -162,22 +194,220 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-    'allauth.account.auth_backends.AuthenticationBackend',
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "config.authentication.NoCSRFSessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_RENDERER_CLASSES": [
+        "config.renderers.StandardJSONRenderer",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "EXCEPTION_HANDLER": "config.exceptions.custom_exception_handler",
+}
+
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # 1 hour
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # 1 week
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=60),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
 SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
     }
 }
 
-SOCIALACCOUNT_ADAPTER = 'AuthenticationProject.adapters.CustomSocialAccountAdapter'
+SOCIALACCOUNT_ADAPTER = "authentication.adapters.CustomSocialAccountAdapter"
+ACCOUNT_ADAPTER = "authentication.adapters.CustomAccountAdapter"
+
+# Allauth Configuration for redirects
+LOGIN_REDIRECT_URL = f"{FRONTEND_URL}/products"
+LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/"
+ACCOUNT_LOGOUT_REDIRECT_URL = f"{FRONTEND_URL}/"
+ACCOUNT_LOGOUT_ON_GET = True
+
+# Additional allauth settings
+SOCIALACCOUNT_LOGIN_ON_GET = True
+ACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+# URL Configuration
+APPEND_SLASH = True  # Enable automatic slash appending
+
+# CSRF Configuration - COMPLETELY DISABLED FOR DEVELOPMENT
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+
+# Static files configuration
+STATIC_ROOT = BASE_DIR / "staticfiles"
+# Only include static directories that exist
+STATICFILES_DIRS = []
+
+# Media files configuration
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# S3/Cloudflare R2 Configuration
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
+
+# Cloudflare R2 specific settings (comment out if using standard S3)
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "auto")
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")
+AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")
+
+# Image upload settings
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_IMAGES_PER_POST = 10
+SUPPORTED_IMAGE_FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+
+# S3 settings
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",  # 24 hours
+}
+
+AWS_DEFAULT_ACL = "public-read"
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_AUTH = False
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 5  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = FILE_UPLOAD_MAX_MEMORY_SIZE
+FILE_UPLOAD_PERMISSIONS = 0o644
+
+# Django-storages configuration for automatic S3/R2 uploads (Django 4.2+)
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Logging to stdout/stderr so podman logs shows errors
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(levelname)s] %(asctime)s %(name)s:%(lineno)d %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+]
+
+# For development, you can also use (less secure):
+# CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Session Configuration for Subdomains
+# Extract domain from FRONTEND_URL for subdomain sharing
+from urllib.parse import urlparse
+
+frontend_parsed = urlparse(FRONTEND_URL)
+
+# Determine session cookie domain based on environment
+if DEBUG:
+    # For development (localhost), don't set domain to allow cross-port access
+    SESSION_COOKIE_DOMAIN = None
+    print(f"[DEBUG] Development mode - SESSION_COOKIE_DOMAIN set to None for localhost")
+else:
+    # For production: use parent domain (e.g., ".example.com")
+    if frontend_parsed.hostname and "." in frontend_parsed.hostname:
+        domain_parts = frontend_parsed.hostname.split(".")
+        if len(domain_parts) >= 2 and domain_parts[-1] != "localhost":
+            SESSION_COOKIE_DOMAIN = f".{'.'.join(domain_parts[-2:])}"
+            print(
+                f"[DEBUG] Production mode - SESSION_COOKIE_DOMAIN set to: {SESSION_COOKIE_DOMAIN}"
+            )
+        else:
+            SESSION_COOKIE_DOMAIN = None
+    else:
+        SESSION_COOKIE_DOMAIN = None
+
+SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+SESSION_COOKIE_HTTPONLY = False  # Allow JavaScript access for development
+SESSION_COOKIE_SAMESITE = "Lax"  # Allow cross-site requests for authentication
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request
+SESSION_COOKIE_NAME = "swe2_sessionid"
+
+# CSRF Configuration for Subdomains
+CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_NAME = "swe2_csrftoken"
+CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL,
+    BACKEND_URL,
+]
+
+# Django Simple History Configuration
+SIMPLE_HISTORY_FILEFIELD_TO_CHARFIELD = True
