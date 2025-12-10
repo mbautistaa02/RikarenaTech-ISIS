@@ -9,6 +9,7 @@ interface UserGroup {
 export const Header: React.FC = () => {
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const [isModerator, setIsModerator] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     // Fetch user data to check if moderator
@@ -61,6 +62,16 @@ export const Header: React.FC = () => {
       .catch((error) => {
         console.error("Error fetching alerts count:", error);
       });
+
+    // Close mobile menu when resizing to large screens
+    const onResize = () => {
+      if (window.innerWidth >= 1024 && menuOpen) setMenuOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   return (
@@ -74,7 +85,8 @@ export const Header: React.FC = () => {
           </h1>
 
           {/* Nav Links */}
-          <nav className="hidden sm:flex items-center space-x-6">
+          {/* show inline nav only on large screens and up; on smaller screens nav will be in the mobile dropdown */}
+          <nav className="hidden lg:flex items-center space-x-6">
             <NavLink
               to="/products"
               className={({ isActive }) =>
@@ -241,9 +253,14 @@ export const Header: React.FC = () => {
           </a>
         </div>
 
-        {/* Menú móvil (futuro) */}
-        <div className="sm:hidden">
-          <button className="text-[#171A1F] focus:outline-none">
+        {/* mobile menu button and dropdown - visible on screens < lg */}
+        <div className="lg:hidden relative">
+          <button
+            onClick={() => setMenuOpen((s) => !s)}
+            aria-expanded={menuOpen}
+            aria-label="Toggle menu"
+            className="text-[#171A1F] focus:outline-none p-2 rounded-md hover:bg-gray-100"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="w-6 h-6"
@@ -259,6 +276,126 @@ export const Header: React.FC = () => {
               />
             </svg>
           </button>
+
+          {menuOpen && (
+            <div className="absolute right-2 top-full mt-2 w-56 bg-white shadow-md rounded-md z-50">
+              <nav className="flex flex-col py-2">
+                <NavLink
+                  to="/products"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Productos
+                </NavLink>
+
+                <NavLink
+                  to="/sellers"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Vendedores
+                </NavLink>
+
+                <NavLink
+                  to="/profile"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Mi perfil
+                </NavLink>
+
+                <NavLink
+                  to="/create_post"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Crear publicación
+                </NavLink>
+
+                <NavLink
+                  to="/create_crop"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Crear cultivo
+                </NavLink>
+
+                <NavLink
+                  to="/my_products"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Mis productos y cultivos
+                </NavLink>
+
+                <NavLink
+                  to="/alerts"
+                  onClick={() => setMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm font-[Inter] relative ${
+                      isActive
+                        ? "text-[#448502] font-semibold"
+                        : "text-[#171A1F] hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Alertas
+                </NavLink>
+
+                {isModerator && (
+                  <NavLink
+                    to="/moderador"
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `px-4 py-2 text-sm font-[Inter] ${
+                        isActive
+                          ? "text-[#448502] font-semibold"
+                          : "text-[#171A1F] hover:bg-gray-100"
+                      }`
+                    }
+                  >
+                    Moderador
+                  </NavLink>
+                )}
+              </nav>
+            </div>
+          )}
         </div>
       </div>
     </header>

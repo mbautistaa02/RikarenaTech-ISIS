@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Footer: React.FC = () => {
+  const navigate = useNavigate();
+
   return (
     <footer className="w-full bg-gradient-to-r from-[#448502] to-[#83592E] text-white flex flex-col justify-center py-10">
       {/*Contenedor interno */}
@@ -15,7 +18,10 @@ export const Footer: React.FC = () => {
           <p className="text-base md:text-lg font-semibold mb-3">
             Únete a nuestra comunidad
           </p>
-          <button className="flex items-center justify-center w-full max-w-[256px] h-10 bg-gray-100 text-gray-800 font-medium text-sm rounded-md gap-3 hover:bg-gray-300 active:bg-gray-400 transition-colors">
+          <button
+            onClick={() => navigate("/contact")}
+            className="flex items-center justify-center w-full max-w-[256px] h-10 bg-gray-100 text-gray-800 font-medium text-sm rounded-md gap-3 hover:bg-gray-300 active:bg-gray-400 transition-colors"
+          >
             Contáctanos
             <svg
               xmlns="http://www.w3.org/2000/svg"

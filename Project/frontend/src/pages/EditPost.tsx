@@ -111,6 +111,10 @@ export function EditPost() {
       if (!id) return;
       await patchMyPost(id, formData);
       showToast("success", "Post editado correctamente.");
+      // Redirigir después de 2 segundos
+      setTimeout(() => {
+        navigate("/my_products");
+      }, 2000);
     } catch (err: any) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       showToast("error", "Error al crear el post: " + message);

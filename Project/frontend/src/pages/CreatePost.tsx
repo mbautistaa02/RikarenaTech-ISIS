@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { showToast } from "@/lib/toast";
 import {
@@ -17,6 +18,7 @@ type FormState = {
 };
 
 export const CreatePost: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
@@ -70,6 +72,10 @@ export const CreatePost: React.FC = () => {
     try {
       await createMarketplacePost(formData);
       showToast("success", "Post creado correctamente.");
+      // Redirigir después de 2 segundos
+      setTimeout(() => {
+        navigate("/my_products");
+      }, 2000);
     } catch (err: any) {
       const message = err instanceof Error ? err.message : "Error desconocido";
       showToast("error", "Error al crear el post: " + message);

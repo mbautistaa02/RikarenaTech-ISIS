@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 
 import { confirmToast } from "@/lib/button_toast.tsx";
 import { showToast } from "@/lib/toast.ts";
+import { getMyCrops, deleteMyCrop } from "@/services/cropsService.ts";
 import { getMyPosts } from "@/services/postsService.ts";
 import { deleteMarketplacePost } from "@/services/postsService.ts";
 import { getCurrentUserProfile } from "@/services/profileService";
+import type { CropItem } from "@/types/crop.ts";
+import { getFertilizerLabel, getIrrigationLabel } from "@/types/crop.ts";
 import type { PostItem } from "@/types/post.ts";
 import type { CurrentUser } from "@/types/profile";
 
@@ -81,13 +84,46 @@ export const MyProducts: React.FC = () => {
       showToast("error", "No se pudo eliminar el producto.");
     }
   };
-  const [crops, setCrops] = useState([]);
+
+  const handleDeleteCrop = async (id: number) => {
+    const confirmed = await confirmToast(
+      "¿Seguro quieres eliminar este cultivo?",
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteMyCrop(id);
+      showToast("success", "Cultivo eliminado correctamente.");
+      // Remover el cultivo eliminado del estado
+      setCrops((prev) => prev.filter((crop) => crop.crop_id !== id));
+    } catch (err) {
+      console.error("Error eliminando el cultivo:", err);
+      showToast("error", "No se pudo eliminar el cultivo.");
+    }
+  };
+  const [crops, setCrops] = useState<CropItem[]>([]);
 
   useEffect(() => {
-    //Cambiar a crops en la conexión con backend
-    fetch("https://6917819021a96359486d20a1.mockapi.io/api/v1/products")
-      .then((r) => r.json())
-      .then((data) => setCrops(data));
+    const controller = new AbortController();
+    const loadCrops = async () => {
+      try {
+        console.log("Cargando crops desde /crops/...");
+        const data = await getMyCrops(controller.signal);
+        console.log("Crops obtenidos:", data);
+        if (Array.isArray(data)) {
+          setCrops(data);
+        } else {
+          setCrops([]);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error fetching crops", err);
+          setCrops([]);
+        }
+      }
+    };
+    loadCrops();
+    return () => controller.abort();
   }, []);
   if (loading) {
     return (
@@ -200,39 +236,86 @@ export const MyProducts: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-8 px-20">
           {crops.map((crop) => (
             <div
-              key={crop["id"]}
-              className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-center overflow-hidden"
+              key={crop.crop_id}
+              className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col items-start overflow-hidden p-6"
             >
-              {/* Imagen */}
-              <img
-                src={crop["image"] || "/blueberry.png"}
-                alt={crop["name"]}
-                className="w-30 h-30 rounded-full mt-4 object-cover"
-              />
-
               {/* Contenido */}
-              <div className="mb-4 text-center px-4">
-                <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-1">
-                  {crop["name"]}
+              <div className="w-full">
+                <h3 className="font-[Outfit] text-[18px] font-semibold text-neutral-900 mb-2">
+                  {typeof crop.product === "object"
+                    ? crop.product.name
+                    : `Producto #${crop.product}`}
                 </h3>
 
-                <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
-                  {crop["desc"]}
+                <p className="font-[Inter] text-[14px] text-neutral-600 mb-3">
+                  Tipo: <span className="font-semibold">{crop.crop_type}</span>
                 </p>
 
+                <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                  <div>
+                    <p className="text-neutral-600">Área</p>
+                    <p className="font-semibold text-neutral-900">
+                      {crop.area} ha
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-600">Producción</p>
+                    <p className="font-semibold text-neutral-900">
+                      {crop.production_qty}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-600">Inicio</p>
+                    <p className="font-semibold text-neutral-900">
+                      {new Date(crop.start_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-neutral-600">Cosecha</p>
+                    <p className="font-semibold text-neutral-900">
+                      {new Date(crop.harvest_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {crop.fertilizer_type && (
+                  <p className="font-[Inter] text-[14px] text-neutral-600 mb-2">
+                    Fertilizante:{" "}
+                    <span className="font-semibold">
+                      {getFertilizerLabel(crop.fertilizer_type)}
+                    </span>
+                  </p>
+                )}
+
+                {crop.irrigation_method && (
+                  <p className="font-[Inter] text-[14px] text-neutral-600 mb-3">
+                    Riego:{" "}
+                    <span className="font-semibold">
+                      {getIrrigationLabel(crop.irrigation_method)}
+                    </span>
+                  </p>
+                )}
+
+                {crop.notes && (
+                  <p className="font-[Inter] text-[14px] text-neutral-600 mb-4">
+                    Notas: <span>{crop.notes}</span>
+                  </p>
+                )}
+
                 {/* Botones */}
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center gap-3 mt-4">
                   <button
+                    onClick={() => handleDeleteCrop(crop.crop_id)}
                     className="bg-[#B2373F] hover:bg-[#992F36] active:bg-[#7F262C]
-                                       text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                                       text-white border border-neutral-300 px-4 py-2 rounded-xl transition text-sm"
                   >
                     Eliminar
                   </button>
 
                   <Link
-                    to={`/edit_post/${crop["id"]}`}
+                    to={`/edit_crop/${crop.crop_id}`}
                     className="bg-[#448502] hover:bg-[#3C7602] active:bg-[#2F5D01]
-                                       text-white border border-neutral-300 px-4 py-2 rounded-xl transition"
+                                       text-white border border-neutral-300 px-4 py-2 rounded-xl transition text-sm"
                   >
                     Editar
                   </Link>
