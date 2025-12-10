@@ -29,5 +29,5 @@ ENV PORT=8000
 # Expose port
 EXPOSE $PORT
 
-# Run gunicorn
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 3 config.wsgi:application
+# Run gunicorn with stdout/stderr logs
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 3 --access-logfile - --error-logfile - config.wsgi:application
