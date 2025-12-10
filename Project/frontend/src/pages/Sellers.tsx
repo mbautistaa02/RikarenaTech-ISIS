@@ -48,21 +48,21 @@ export const Sellers = () => {
         controller.signal,
       );
       setSellers(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          console.error("Error fetching sellers", err);
-          setSellers([]);
-          const message =
-            err instanceof Error && err.message
-              ? err.message
-              : "Debes iniciar sesión para ver vendedores. Inicia sesión e inténtalo de nuevo.";
-          showToast("error", message);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        console.error("Error fetching sellers", err);
+        setSellers([]);
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Debes iniciar sesión para ver vendedores. Inicia sesión e inténtalo de nuevo.";
+        showToast("error", message);
       }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
