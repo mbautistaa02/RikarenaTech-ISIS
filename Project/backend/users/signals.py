@@ -41,16 +41,10 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
         instance.groups.add(user_group)
 
         # Try to update profile picture if Google social account exists
-        try:
-            social_account = SocialAccount.objects.filter(
-                user=instance, provider="google"
-            ).first()
-
-            if social_account and "picture" in social_account.extra_data:
-                profile.picture_url = social_account.extra_data["picture"]
-                profile.save()
-        except SocialAccount.DoesNotExist:
-            pass  # No social account, continue normally
+        social_account = SocialAccount.objects.filter(user=instance).first()
+        if social_account and "picture" in social_account.extra_data:
+            profile.picture_url = social_account.extra_data["picture"]
+            profile.save()
     else:
         # Create profile if it doesn't exist for existing users
         if not hasattr(instance, "profile"):
@@ -104,10 +98,6 @@ def _update_user_profile_picture(sociallogin):
     if not (user and hasattr(user, "profile")):
         return
 
-    # Only process Google accounts
-    if sociallogin.account.provider != "google":
-        return
-
     extra_data = sociallogin.account.extra_data
 
     # Google provides the image in the 'picture' field
@@ -127,9 +117,7 @@ def update_profile_picture_on_login(sender, request, user, **kwargs):
     """
     logger.info("user_logged_in signal received user id=%s username=%s", user.id, user.username)
     try:
-        social_account = SocialAccount.objects.filter(
-            user=user, provider="google"
-        ).first()
+        social_account = SocialAccount.objects.filter(user=user).first()
     except OperationalError:
         return
 

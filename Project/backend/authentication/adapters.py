@@ -73,12 +73,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         user = super().save_user(request, sociallogin, form)
 
         # Update profile picture if it's a Google account and profile exists
-        if (
-            sociallogin.account.provider == "google"
-            and hasattr(user, "profile")
-            and "picture" in sociallogin.account.extra_data
-        ):
-
+        if hasattr(user, "profile") and "picture" in sociallogin.account.extra_data:
             picture_url = sociallogin.account.extra_data["picture"]
             user.profile.picture_url = picture_url
             user.profile.save(update_fields=["picture_url"])
