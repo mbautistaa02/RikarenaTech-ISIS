@@ -255,14 +255,18 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):  # type: ignore
         """
-        Return users who have at least one active or approved post with statistics
+        Return users who have al menos un post público (activo, vendido o expirado) con estadísticas
         """
         # Add swagger detection to prevent schema generation errors
         if getattr(self, "swagger_fake_view", False):
             return User.objects.none()
 
-        # Include both ACTIVE and APPROVED posts
-        valid_statuses = [Post.StatusChoices.ACTIVE, Post.StatusChoices.APPROVED]
+        # Incluimos ACTIVE, SOLD y EXPIRED (se excluyen rechazados y privados)
+        valid_statuses = [
+            Post.StatusChoices.ACTIVE,
+            Post.StatusChoices.SOLD,
+            Post.StatusChoices.EXPIRED,
+        ]
 
         queryset = (
             User.objects.filter(
@@ -345,9 +349,9 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     @swagger_auto_schema(
         operation_summary="List seller users",
         operation_description=(
-            "Lists users with at least one active/approved public post. Supports filtering by "
-            "username, name, category, municipality, department, min_posts and text search. "
-            "Ordering available by active_posts_count, latest_post_date, username."
+            "Lists users with al menos un post público (activo, vendido o expirado). "
+            "Soporta filtros por username, name, category, municipality, department, min_posts "
+            "y búsqueda de texto. Ordenable por active_posts_count, latest_post_date, username."
         ),
         tags=["Users - Sellers"],
         manual_parameters=[
@@ -476,11 +480,15 @@ class SellerUserViewSet(viewsets.ReadOnlyModelViewSet):
     def posts(self, request, username=None):
         user = self.get_object()
 
-        # Get user's active posts
+        # Get user's public posts (except rejected)
         posts_queryset = (
             Post.objects.filter(
                 user=user,
-                status=Post.StatusChoices.ACTIVE,
+                status__in=[
+                    Post.StatusChoices.ACTIVE,
+                    Post.StatusChoices.SOLD,
+                    Post.StatusChoices.EXPIRED,
+                ],
                 visibility=Post.VisibilityChoices.PUBLIC,
             )
             .select_related("category")

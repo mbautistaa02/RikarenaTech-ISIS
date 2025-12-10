@@ -500,16 +500,16 @@ class PostFeedViewSetTest(APITestCase):
         )
 
     def test_list_only_public_active_posts(self):
-        """Test that feed only shows public and active posts"""
+        """Test that feed shows posts públicos no rechazados"""
         url = reverse("marketplace-feed-list")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        # Should only include the active public post
-        self.assertEqual(len(data["data"]), 1)
-        self.assertEqual(data["data"][0]["title"], "Fresh Apples")
+        titles = [p["title"] for p in data["data"]]
+        self.assertIn("Fresh Apples", titles)
+        self.assertIn("Organic Carrots", titles)
 
     def test_filter_by_category(self):
         """Test filtering posts by category"""
@@ -715,20 +715,21 @@ class UserPostViewSetTest(APITestCase):
         """Test filtering user posts by status"""
         # Create posts with different statuses
         PostsTestFixtures.create_post(
-            user=self.user, title="Approved Post", status=Post.StatusChoices.APPROVED
+            user=self.user, title="Approved Post", status=Post.StatusChoices.ACTIVE
         )
 
         self.client.force_authenticate(user=self.user)
 
         url = reverse("user-listings-list")
-        response = self.client.get(url, {"status": Post.StatusChoices.APPROVED})
+        response = self.client.get(url, {"status": Post.StatusChoices.ACTIVE})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        # Should only show approved posts
-        self.assertEqual(len(data["data"]), 1)
-        self.assertEqual(data["data"][0]["title"], "Approved Post")
+        # Debe mostrar los activos del usuario (incluyendo el creado por defecto)
+        titles = [item["title"] for item in data["data"]]
+        self.assertIn("Approved Post", titles)
+        self.assertIn("My Tomatoes", titles)
 
     def test_filter_posts_by_visibility(self):
         """Test filtering user posts by visibility"""
@@ -959,11 +960,11 @@ class PostModerationViewSetTest(APITestCase):
             status=Post.StatusChoices.PENDING_REVIEW,
         )
 
-        self.approved_post = PostsTestFixtures.create_post(
+        self.active_post = PostsTestFixtures.create_post(
             user=self.user,
             title="Approved Post",
             category=self.category,
-            status=Post.StatusChoices.APPROVED,
+            status=Post.StatusChoices.ACTIVE,
         )
 
     def test_authentication_required(self):
@@ -1019,7 +1020,7 @@ class PostModerationViewSetTest(APITestCase):
 
         # Verify approval
         self.pending_post.refresh_from_db()
-        self.assertEqual(self.pending_post.status, Post.StatusChoices.APPROVED)
+        self.assertEqual(self.pending_post.status, Post.StatusChoices.ACTIVE)
         self.assertEqual(self.pending_post.reviewed_by, self.moderator)
         self.assertIsNotNone(self.pending_post.reviewed_at)
 
@@ -1040,28 +1041,31 @@ class PostModerationViewSetTest(APITestCase):
         self.assertEqual(self.pending_post.reviewed_by, self.moderator)
         self.assertIsNotNone(self.pending_post.reviewed_at)
 
-    def test_activate_approved_post(self):
-        """Test activate action for approved posts"""
+    def test_activate_post(self):
+        """Test activate action sets post active"""
         self.client.force_authenticate(user=self.moderator)
 
-        url = reverse("post-moderation-activate", kwargs={"pk": self.approved_post.pk})
+        url = reverse("post-moderation-activate", kwargs={"pk": self.active_post.pk})
         response = self.client.patch(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify activation
-        self.approved_post.refresh_from_db()
-        self.assertEqual(self.approved_post.status, Post.StatusChoices.ACTIVE)
-        self.assertIsNotNone(self.approved_post.published_at)
+        self.active_post.refresh_from_db()
+        self.assertEqual(self.active_post.status, Post.StatusChoices.ACTIVE)
+        self.assertIsNotNone(self.active_post.published_at)
 
-    def test_cannot_activate_non_approved_post(self):
-        """Test that only approved posts can be activated"""
+    def test_activate_pending_post(self):
+        """Test activate action works from pending_review"""
         self.client.force_authenticate(user=self.moderator)
 
         url = reverse("post-moderation-activate", kwargs={"pk": self.pending_post.pk})
         response = self.client.patch(url)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.pending_post.refresh_from_db()
+        self.assertEqual(self.pending_post.status, Post.StatusChoices.ACTIVE)
 
     def test_pending_review_filter(self):
         """Test pending_review custom action"""
@@ -1083,7 +1087,7 @@ class PostModerationViewSetTest(APITestCase):
 
         url = reverse("post-moderation-detail", kwargs={"pk": self.pending_post.pk})
         data = {
-            "status": Post.StatusChoices.APPROVED,
+            "status": Post.StatusChoices.ACTIVE,
             "review_notes": "Looks good",
             "is_featured": True,
         }
@@ -1093,7 +1097,7 @@ class PostModerationViewSetTest(APITestCase):
 
         # Verify updates
         self.pending_post.refresh_from_db()
-        self.assertEqual(self.pending_post.status, Post.StatusChoices.APPROVED)
+        self.assertEqual(self.pending_post.status, Post.StatusChoices.ACTIVE)
         self.assertEqual(self.pending_post.review_notes, "Looks good")
         self.assertTrue(self.pending_post.is_featured)
         self.assertEqual(self.pending_post.reviewed_by, self.moderator)
@@ -1247,7 +1251,7 @@ class SerializerValidationTest(TestCase):
         post = PostsTestFixtures.create_post(user=self.user, category=self.category)
 
         # Regular user should not be able to moderate certain fields
-        data = {"status": Post.StatusChoices.APPROVED, "is_featured": True}
+        data = {"status": Post.StatusChoices.ACTIVE, "is_featured": True}
 
         from unittest.mock import Mock
 
@@ -1471,16 +1475,16 @@ class PerformanceAndEdgeCaseTest(APITestCase):
 
         self.assertTrue(active_post.is_available)
 
-        # Verify that expired posts don't appear in marketplace feed
+        # Verify that expired posts still appear in marketplace feed (public, no rechazados)
         url = reverse("marketplace-feed-list")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        # Should not include the expired post but should include the active one
+        # Debe incluir tanto el expirado como el activo
         post_ids = [post["id"] for post in data["data"]]
-        self.assertNotIn(expired_post.id, post_ids)
+        self.assertIn(expired_post.id, post_ids)
         self.assertIn(active_post.id, post_ids)
 
     def test_concurrent_view_count_updates(self):

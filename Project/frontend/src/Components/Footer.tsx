@@ -9,9 +9,14 @@ export const Footer: React.FC = () => {
       {/*Contenedor interno */}
       <div className="max-w-[1120px] w-full mx-auto px-6 flex flex-col md:flex-row justify-between items-center md:items-start gap-6">
         {/* Texto izquierdo */}
-        <p className="text-base md:text-lg font-normal text-center md:text-left">
-          Conecta con productores nacionales
-        </p>
+        <div className="text-center md:text-left">
+          <p className="text-base md:text-lg font-normal">
+            Conecta con productores nacionales
+          </p>
+          <p className="text-sm md:text-base text-white/90">
+            Encuentra cosechas frescas, precios justos y apoyo directo al campo.
+          </p>
+        </div>
 
         {/* Columna derecha */}
         <div className="flex flex-col items-center md:items-end text-center md:text-right">

@@ -5,6 +5,8 @@ from rest_framework import filters, status, viewsets
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
+from users.models import Municipality
+
 from .models import Alert, AlertCategory
 from .serializers import (
     AlertCategorySerializer,
@@ -91,12 +93,15 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
         filters = Q(scope="global")
 
         # Add departmental alerts if user has a department
-        if self.request.user.is_authenticated:
-            if hasattr(self.request.user, "profile"):
-                user_profile = self.request.user.profile  # type: ignore
-                if user_profile.municipality and user_profile.municipality.department:
-                    user_department = user_profile.municipality.department
-                    filters |= Q(scope="departamental", department=user_department)
+        if self.request.user.is_authenticated and hasattr(self.request.user, "profile"):
+            user_profile = self.request.user.profile  # type: ignore
+            try:
+                municipality = user_profile.municipality
+            except Municipality.DoesNotExist:  # type: ignore
+                municipality = None
+
+            if municipality and municipality.department:
+                filters |= Q(scope="departamental", department=municipality.department)
 
         return queryset.filter(filters)
 

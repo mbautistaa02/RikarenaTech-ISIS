@@ -94,11 +94,55 @@ export const Home: React.FC = () => {
     fetchData({ category: next });
   };
 
+  useEffect(() => {
+    // Preload first image of each fetched item to speed up card render
+    if (!Array.isArray(items)) return;
+    items.forEach((item) => {
+      const src =
+        item.images && item.images.length > 0
+          ? item.images[0].image
+          : "/blueberry.png";
+      const img = new Image();
+      img.src = src;
+    });
+  }, [items]);
+
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setOrdering(value);
     fetchData({ ordering: value });
   };
+
+  const statusStyles: Record<string, { label: string; classes: string }> = {
+    active: { label: "Disponible", classes: "bg-green-100 text-green-800" },
+    pending_review: {
+      label: "En revisión",
+      classes: "bg-amber-100 text-amber-800",
+    },
+    rejected: { label: "Rechazado", classes: "bg-red-100 text-red-800" },
+    sold: { label: "Vendido", classes: "bg-neutral-200 text-neutral-800" },
+    expired: { label: "Expirado", classes: "bg-neutral-200 text-neutral-800" },
+    paused: { label: "Pausado", classes: "bg-neutral-200 text-neutral-800" },
+  };
+
+  const renderStatusBadge = (status?: string) => {
+    if (!status) return null;
+    const info = statusStyles[status.toLowerCase()];
+    if (!info) return null;
+    return (
+      <span
+        className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold ${info.classes}`}
+      >
+        {info.label}
+      </span>
+    );
+  };
+
+  const filteredItems = items.filter(
+    (item) =>
+      item.status !== "rejected" &&
+      (item.visibility === "public" || item.visibility === undefined),
+  );
 
   return (
     <section className="w-full  bg-neutral-50 flex flex-col items-center">
@@ -226,7 +270,7 @@ export const Home: React.FC = () => {
       {/* Texto */}
       <div className="w-full px-4 md:px-15">
         <h2 className="mt-8 text-center md:text-left text-2xl md:text-[30px] leading-8 md:leading-9 font-[Outfit] font-bold text-neutral-900">
-          Fresh pick from local farms
+          Lo mejor, directo del campo local
         </h2>
       </div>
 
@@ -238,25 +282,31 @@ export const Home: React.FC = () => {
               Buscando productos...
             </div>
           )}
-          {!loading && items.length === 0 && (
+          {!loading && filteredItems.length === 0 && (
             <div className="col-span-full text-center text-neutral-500">
               No se encontraron productos.
             </div>
           )}
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div
               key={item.id}
               className="relative bg-white rounded-xl shadow-sm border border-transparent flex flex-col overflow-hidden"
             >
+              {renderStatusBadge(item.status)}
               {/* Imagen */}
               <img
                 src={
                   item.images && item.images.length > 0
                     ? item.images[0].image
-                    : "/blueberry.png"
+                    : "/placeholder-no-image.svg"
                 }
                 alt={item.title}
                 className="w-full h-48 object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.onerror = null;
+                  target.src = "/placeholder-no-image.svg";
+                }}
               />
 
               {/* Contenido */}
@@ -278,7 +328,7 @@ export const Home: React.FC = () => {
                     to={`/product_details/${item.id}`}
                     className="bg-white hover:bg-neutral-100 border border-neutral-300 active:bg-neutral-200 px-4 py-2 rounded-xl transition"
                   >
-                    View product details
+                    Ver detalles
                   </Link>
                 </div>
               </div>

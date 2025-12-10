@@ -14,6 +14,7 @@ export default function ProductDetails() {
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -46,6 +47,20 @@ export default function ProductDetails() {
     return () => controller.abort();
   }, [id]);
 
+  useEffect(() => {
+    // Preload all product images for smoother navigation
+    if (item?.images && item.images.length > 0) {
+      item.images.forEach((img) => {
+        const preload = new Image();
+        preload.src = img.image;
+      });
+    }
+  }, [item]);
+
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [item]);
+
   if (loading) {
     return <div className="p-10 text-center">Cargando...</div>;
   }
@@ -62,11 +77,23 @@ export default function ProductDetails() {
     );
   }
 
-  const imageSrc =
+  const images =
     item.images && item.images.length > 0
-      ? item.images[0].image
-      : "/blueberry.png";
+      ? item.images
+      : [{ image: "/placeholder-no-image.svg" }];
+  const hasMultipleImages = images.length > 1;
+  const currentImage = images[currentImageIndex] ?? images[0];
   const sellerImage = seller.profile?.picture_url || defaultAvatar;
+
+  const handleNextImage = () => {
+    if (!hasMultipleImages) return;
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = () => {
+    if (!hasMultipleImages) return;
+    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
 
   return (
     <div>
@@ -80,12 +107,36 @@ export default function ProductDetails() {
       </div>
 
       <div className="w-full bg-neutral-50 flex flex-col lg:flex-row lg:gap-16 px-4 lg:px-20 py-2 overflow-visible">
-        <div className="flex items-center">
+        <div className="flex items-center relative">
           <img
-            src={imageSrc}
+            src={currentImage.image}
             alt={item.title}
             className="w-full max-w-[600px] max-h-[400px] h-auto rounded-2xl object-cover mx-auto lg:mx-0"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.onerror = null;
+              target.src = "/placeholder-no-image.svg";
+            }}
           />
+
+          {hasMultipleImages && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-neutral-700 rounded-full p-2 shadow transition"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={handleNextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-neutral-700 rounded-full p-2 shadow transition"
+              >
+                →
+              </button>
+            </>
+          )}
         </div>
 
         <div className="mt-10 lg:mt-0 flex lg:max-w-1/2 flex-col">
@@ -130,7 +181,7 @@ export default function ProductDetails() {
             className=" mt-6 w-full max-w-[592px] h-[48px] px-3 border border-[#448502] rounded-md justify-center
         font-[Inter] text-[16px] lg:text-[18px] font-semibold text-[#448502] bg-neutral-50 hover:bg-neutral-100 active:bg-white"
           >
-            Contactar al vendedor
+            Contactar al vendedor (proximamente)
           </button>
         </div>
       </div>

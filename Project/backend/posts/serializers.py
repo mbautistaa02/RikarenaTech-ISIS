@@ -1,4 +1,6 @@
 from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.utils import timezone
 
 from rest_framework import serializers
 
@@ -207,7 +209,6 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
         # Only moderators can change certain statuses
         moderator_only_statuses = [
-            Post.StatusChoices.APPROVED,
             Post.StatusChoices.REJECTED,
         ]
 
@@ -278,7 +279,12 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
             validated_data["expires_at"] = self._normalize_expiry(
                 validated_data.get("expires_at")
             )
-        return super().update(instance, validated_data)
+        try:
+            return super().update(instance, validated_data)
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                "No se pudo actualizar la publicación. Verifica las relaciones y vuelve a intentar."
+            ) from exc
 
     def _normalize_expiry(self, expires_at):
         """Ensure expires_at is at least MIN_EXPIRY_DAYS days in the future."""
@@ -327,11 +333,17 @@ class PostModerationSerializer(serializers.ModelSerializer):
                 "You don't have permissions to moderate posts."
             )
 
-        # If status changes, record who and when
+        # If status changes, record who/when and ensure publish date when activating
         if "status" in validated_data and validated_data["status"] != instance.status:
-            from django.utils import timezone
-
+            new_status = validated_data["status"]
             instance.reviewed_by = user
             instance.reviewed_at = timezone.now()
+            if new_status == Post.StatusChoices.ACTIVE and not instance.published_at:
+                instance.published_at = timezone.now()
 
-        return super().update(instance, validated_data)
+        try:
+            return super().update(instance, validated_data)
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                "No se pudo actualizar la publicación por una referencia inválida (usuario, municipio o categoría)."
+            ) from exc

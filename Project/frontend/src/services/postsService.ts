@@ -3,6 +3,13 @@ import type { PostItem } from "@/types/post";
 
 import { apiClient } from "./apiClient";
 
+type Paginated<T> = {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results: T[];
+};
+
 type MarketplaceParams = {
   search?: string;
   category?: number;
@@ -46,3 +53,26 @@ export const deleteMarketplacePost = (id: number, signal?: AbortSignal) => {
     signal,
   );
 };
+
+export const markPostAsSold = (id: number) =>
+  apiClient.patch<PostItem>(`/posts/my-listings/${id}/mark_as_sold/`, {});
+
+// Moderation endpoints
+export const getPostsForModeration = (
+  page = 1,
+  signal?: AbortSignal,
+): Promise<Paginated<PostItem> | PostItem[]> => {
+  const query = new URLSearchParams();
+  if (page) query.set("page", String(page));
+  const qs = query.toString();
+  const path = `/posts/moderation/${qs ? `?${qs}` : ""}`;
+  return apiClient.get<Paginated<PostItem>>(path, signal);
+};
+
+export const updateModerationPost = (
+  id: number,
+  payload: Partial<Pick<PostItem, "status" | "review_notes">>,
+) => apiClient.patch<PostItem>(`/posts/moderation/${id}/`, payload);
+
+export const reactivatePost = (id: number) =>
+  apiClient.patch<PostItem>(`/posts/moderation/${id}/reactivate/`, {});

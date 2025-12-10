@@ -17,7 +17,8 @@ interface RequestOptions<TBody> {
 
 const errorMessages = {
   offline: "No hay conexión. Verifica tu red.",
-  unauthorized: "Tu sesión ha expirado. Inicia sesión de nuevo.",
+  unauthorized:
+    "Debes iniciar sesión para continuar. Inicia sesión e inténtalo de nuevo.",
   forbidden: "No tienes permisos para esta acción.",
   notFound: "Recurso no encontrado.",
   server: "Error del servidor. Intenta más tarde.",
@@ -79,7 +80,7 @@ class ApiClient {
     if (!res.ok) {
       const payload = raw as { detail?: string; message?: string };
       const message =
-        mapStatusToMessage(res.status) ||
+        mapStatusToMessage(res.status, payload.detail || payload.message) ||
         formatErrorMessage(payload.detail || payload.message || res.statusText);
       showToast("error", message);
       throw new Error(message);
@@ -123,8 +124,16 @@ class ApiClient {
 
 export const apiClient = new ApiClient(API_BASE_URL);
 
-function mapStatusToMessage(status: number) {
-  if (status === 401) return errorMessages.unauthorized;
+function mapStatusToMessage(status: number, detail?: string) {
+  const normalizedDetail = detail?.toLowerCase() ?? "";
+  const missingAuth =
+    normalizedDetail.includes("authentication credentials") ||
+    normalizedDetail.includes("not authenticated");
+
+  if (status === 401 || (status === 403 && missingAuth)) {
+    return errorMessages.unauthorized;
+  }
+
   if (status === 403) return errorMessages.forbidden;
   if (status === 404) return errorMessages.notFound;
   if (status >= 500) return errorMessages.server;

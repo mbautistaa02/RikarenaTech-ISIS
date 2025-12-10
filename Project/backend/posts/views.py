@@ -1,6 +1,7 @@
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, QuerySet
 from django.utils import timezone
 
 from drf_yasg import openapi
@@ -210,19 +211,14 @@ class PostFeedViewSet(viewsets.ReadOnlyModelViewSet):
             raise serializers.ValidationError({name: "Must be a valid number."})
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
-        """Only public and active posts with agricultural filtering"""
-        now = timezone.now()
-        queryset = (
-            Post.objects.filter(
-                status=Post.StatusChoices.ACTIVE,
-                visibility=Post.VisibilityChoices.PUBLIC,
-            )
-            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
-            .select_related(
-                "user", "category", "municipality", "municipality__department"
-            )
-            .prefetch_related("images")
-        )
+        """Public posts for marketplace (cualquiera excepto rechazados)"""
+        queryset = Post.objects.filter(
+            visibility=Post.VisibilityChoices.PUBLIC
+        ).exclude(status=Post.StatusChoices.REJECTED)
+
+        queryset = queryset.select_related(
+            "user", "category", "municipality", "municipality__department"
+        ).prefetch_related("images")
 
         # Agricultural marketplace filtering
         category = self.request.query_params.get("category")
@@ -334,7 +330,7 @@ class UserPostViewSet(viewsets.ModelViewSet):
             openapi.Parameter(
                 "status",
                 openapi.IN_QUERY,
-                description="Filter by status (pending_review, approved, rejected, active, sold, paused, expired).",
+                description="Filter by status (pending_review, rejected, active, sold, paused, expired).",
                 type=openapi.TYPE_STRING,
             ),
             openapi.Parameter(
@@ -546,7 +542,7 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     Features:
     - Read and update posts (no creation/deletion)
     - Approve/reject posts with review notes
-    - Activate approved posts
+    - Activate posts
     - Track reviewer information automatically
     - Access control for moderators only
     """
@@ -657,18 +653,22 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
     @swagger_auto_schema(
         methods=["patch"],
         operation_summary="Approve post",
-        operation_description="Marks a post as approved and records the reviewer.",
+        operation_description="Marca un post como activo y registra el revisor.",
         tags=["Posts - Moderation"],
         request_body=None,
     )
     @action(detail=True, methods=["patch"])
     def approve(self, request, pk=None):
-        """Approve a pending post for publication."""
+        """Approve a post (promote to active)."""
         post = self.get_object()
-        post.status = Post.StatusChoices.APPROVED
+        post.status = Post.StatusChoices.ACTIVE
         post.reviewed_by = request.user
         post.reviewed_at = timezone.now()
-        post.save(update_fields=["status", "reviewed_by", "reviewed_at"])
+        if not post.published_at:
+            post.published_at = timezone.now()
+        post.save(
+            update_fields=["status", "reviewed_by", "reviewed_at", "published_at"]
+        )
 
         serializer = self.get_serializer(post)
         return Response(serializer.data)
@@ -706,26 +706,51 @@ class PostModerationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @swagger_auto_schema(
         methods=["patch"],
-        operation_summary="Activate approved post",
-        operation_description="Activates an approved post and sets `published_at` if it was missing.",
+        operation_summary="Activate post",
+        operation_description="Activa un post y setea `published_at` si faltaba.",
         tags=["Posts - Moderation"],
         request_body=None,
     )
     @action(detail=True, methods=["patch"])
     def activate(self, request, pk=None):
-        """Activate an approved post for public viewing."""
+        """Activate a post for public viewing."""
         post = self.get_object()
-
-        if post.status != Post.StatusChoices.APPROVED:
-            return Response(
-                {"error": "Only approved products can be activated"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         post.status = Post.StatusChoices.ACTIVE
         if not post.published_at:
             post.published_at = timezone.now()
         post.save(update_fields=["status", "published_at"])
+
+        serializer = self.get_serializer(post)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        methods=["patch"],
+        operation_summary="Reactivate for 7 days",
+        operation_description="Reactiva un post fijando status activo y extiende expires_at 7 días desde ahora.",
+        tags=["Posts - Moderation"],
+        request_body=None,
+    )
+    @action(detail=True, methods=["patch"])
+    def reactivate(self, request, pk=None):
+        """Reactivar por 7 días: status active y nueva fecha de expiración."""
+        post = self.get_object()
+        now = timezone.now()
+        post.status = Post.StatusChoices.ACTIVE
+        post.reviewed_by = request.user
+        post.reviewed_at = now
+        if not post.published_at:
+            post.published_at = now
+        post.expires_at = now + timedelta(days=7)
+        post.save(
+            update_fields=[
+                "status",
+                "reviewed_by",
+                "reviewed_at",
+                "published_at",
+                "expires_at",
+            ]
+        )
 
         serializer = self.get_serializer(post)
         return Response(serializer.data)
