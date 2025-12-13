@@ -6,7 +6,11 @@ class Profile(models.Model):
     """Model for user profiles"""
 
     cellphone_number = models.BigIntegerField(unique=True, null=True, blank=True)
+<<<<<<< Updated upstream
     role = models.CharField(max_length=50)
+=======
+    role = models.CharField(max_length=50, default="user")
+>>>>>>> Stashed changes
     registration_date = models.DateTimeField(auto_now_add=True)
     picture_url = models.URLField(max_length=200, blank=True, null=True)
     bio = models.TextField(

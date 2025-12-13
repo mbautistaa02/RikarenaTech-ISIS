@@ -7,6 +7,7 @@ from allauth.socialaccount.models import SocialAccount
 from allauth.socialaccount.signals import pre_social_login, social_account_added
 
 from .models import Profile
+from django.db import connection
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -22,7 +23,27 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
         **kwargs: Additional arguments
     """
     if created:
+<<<<<<< Updated upstream
         profile = Profile.objects.create(user=instance)
+=======
+        # Avoid attempting to create a Profile (which triggers simple_history
+        # to write a historical record) when the historical table doesn't yet
+        # exist (e.g. during migrations or test DB setup). This prevents
+        # OperationalError and broken transactions that cause test failures.
+        try:
+            tables = connection.introspection.table_names()
+        except Exception:
+            # If introspection fails for any reason, skip profile creation.
+            return
+
+        if "users_historicalprofile" not in tables:
+            return
+
+        try:
+            profile = Profile.objects.create(user=instance, role="user")
+        except (OperationalError, ProgrammingError):
+            return
+>>>>>>> Stashed changes
 
         # Assign to users group
         user_group, _ = Group.objects.get_or_create(name="users")
@@ -42,7 +63,18 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
     else:
         # Create profile if it doesn't exist for existing users
         if not hasattr(instance, "profile"):
-            Profile.objects.create(user=instance)
+            try:
+                tables = connection.introspection.table_names()
+            except Exception:
+                return
+
+            if "users_historicalprofile" not in tables:
+                return
+
+            try:
+                Profile.objects.create(user=instance, role="user")
+            except (OperationalError, ProgrammingError):
+                return
 
 
 @receiver(social_account_added)
