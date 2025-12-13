@@ -7,7 +7,7 @@ from simple_history.models import HistoricalRecords
 class Profile(models.Model):
     """Model for user profiles"""
 
-    cellphone_number = models.BigIntegerField(unique=True, null=True, blank=True)
+    cellphone_number = models.BigIntegerField(null=True, blank=True)
     registration_date = models.DateTimeField(auto_now_add=True)
     picture_url = models.URLField(max_length=200, blank=True, null=True)
     bio = models.TextField(

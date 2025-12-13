@@ -17,6 +17,13 @@ type FormState = {
   picture: string;
 };
 
+type FormErrors = {
+  bio?: string;
+  cellphone?: string;
+  picture?: string;
+  municipality?: string;
+};
+
 export const Profile: React.FC = () => {
   const [myInfo, setMyInfo] = useState<CurrentUser | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -28,8 +35,10 @@ export const Profile: React.FC = () => {
     municipalityId: "",
     picture: "",
   });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [shouldValidate, setShouldValidate] = useState(false); // Solo validar cuando se intente guardar
 
   const municipalities: Municipality[] = useMemo(() => {
     const selected = departments.find((dept) => dept.id === form.departmentId);
@@ -70,6 +79,58 @@ export const Profile: React.FC = () => {
     return () => controller.abort();
   }, []);
 
+  // Simple sanitizers / validators (client-side)
+  const sanitizeText = (value: string, maxLen = 1000) => {
+    // Remove tags, control chars and trim
+    const withoutTags = value.replace(/<[^>]*>/g, "").replace(/[\x00-\x1F\x7F]/g, "");
+    return withoutTags.trim().slice(0, maxLen);
+  };
+
+  const validatePhone = (value: string) => {
+    if (!value) return null;
+    const digits = value.replace(/[^0-9+]/g, "");
+    // Accept between 7 and 15 digits (with optional +)
+    const digitsOnly = digits.replace(/\+/g, "");
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+      return "Número inválido (7-15 dígitos).";
+    }
+    return null;
+  };
+
+  const validateImageUrl = (value: string) => {
+    if (!value) return null;
+    
+    // Permitir URLs https, http, o rutas relativas que parecen razonables
+    const isValidUrl = 
+      /^https?:\/\/.+/.test(value) ||  // URLs con https://http://
+      /^\//.test(value) ||              // Rutas relativas como /farmer.jpg
+      /^\.\//.test(value);              // Rutas relativas como ./image.jpg
+    
+    if (!isValidUrl) {
+      return "La URL de imagen no parece válida.";
+    }
+    
+    return null;
+  };
+
+  const runValidation = (nextForm: FormState): FormErrors => {
+    const e: FormErrors = {};
+    const bio = sanitizeText(nextForm.bio, 1000);
+    if (bio.length > 800) e.bio = "Descripción muy larga (máx 800 caracteres).";
+
+    const phoneErr = validatePhone(nextForm.cellphone);
+    if (phoneErr) e.cellphone = phoneErr;
+
+    const picErr = validateImageUrl(nextForm.picture);
+    if (picErr) e.picture = picErr;
+
+    if (nextForm.municipalityId && !nextForm.departmentId) {
+      e.municipality = "Selecciona primero un departamento.";
+    }
+
+    return e;
+  };
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -104,22 +165,52 @@ export const Profile: React.FC = () => {
     }
   }, [form.departmentId, form.municipalityId, municipalities]);
 
+  // Re-validate when form changes (but only if validation has been triggered)
+  useEffect(() => {
+    if (shouldValidate) {
+      const newErrors = runValidation(form);
+      setErrors(newErrors);
+    }
+  }, [form, shouldValidate]);
+
   const handleSave = async () => {
     if (!myInfo?.username) return;
     setSaving(true);
+    setShouldValidate(true); // Activar validación
     try {
+      // Final sanitization before send
+      const cleanedBio = sanitizeText(form.bio, 1000);
+      const cleanedPhone = (form.cellphone || "").replace(/[^0-9+]/g, "");
+      const cleanedPicture = form.picture ? String(form.picture).trim() : "";
+
+      const nextErrors = runValidation({ ...form, bio: cleanedBio, cellphone: cleanedPhone, picture: cleanedPicture });
+      setErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) {
+        showToast("error", "Corrige los errores del formulario antes de guardar.");
+        setSaving(false);
+        return;
+      }
+
       const payload = {
         first_name: form.username,
-        bio: form.bio,
-        cellphone_number: form.cellphone || null,
-        municipality: form.municipalityId || undefined,
+        bio: cleanedBio || null,
+        cellphone_number: cleanedPhone ? parseInt(cleanedPhone, 10) : null,
+        municipality: form.municipalityId && form.municipalityId !== "" ? form.municipalityId : null,
+        picture_url: cleanedPicture || null,
       };
 
       const updated = await updateUserProfile(myInfo.username, payload);
-      setMyInfo(updated);
-      showToast("success", "Perfil actualizado correctamente.");
+      
+      if (updated && updated.username) {
+        setMyInfo(updated);
+        showToast("success", "Perfil actualizado correctamente.");
+      } else {
+        console.warn("⚠️ Respuesta inesperada:", updated);
+        showToast("error", "La respuesta del servidor no es válida.");
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("❌ Error al guardar:", err);
+      const message = err instanceof Error ? err.message : "Error desconocido";
       showToast("error", "Error al actualizar: " + message);
     } finally {
       setSaving(false);
@@ -193,6 +284,9 @@ export const Profile: React.FC = () => {
               setForm((prev) => ({ ...prev, bio: e.target.value }))
             }
           />
+          {errors.bio && (
+            <div className="text-sm text-red-600 mt-1">{errors.bio}</div>
+          )}
 
           <label className="font-medium text-[14px] text-neutral-900 font-[Inter] mt-4 block">
             Teléfono
@@ -205,6 +299,9 @@ export const Profile: React.FC = () => {
               setForm((prev) => ({ ...prev, cellphone: e.target.value }))
             }
           />
+          {errors.cellphone && (
+            <div className="text-sm text-red-600 mt-1">{errors.cellphone}</div>
+          )}
         </div>
 
         <div className="mt-4">
@@ -229,6 +326,9 @@ export const Profile: React.FC = () => {
               </option>
             ))}
           </select>
+          {errors.municipality && (
+            <div className="text-sm text-red-600 mt-1">{errors.municipality}</div>
+          )}
 
           <label className="font-medium text-[14px] text-neutral-900 mt-3">
             Municipio
