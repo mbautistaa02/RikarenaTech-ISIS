@@ -66,7 +66,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     generator_class=CustomSchemaGenerator,
-    public=True,
-    permission_classes=(permissions.AllowAny,),
+    public=False,
+    permission_classes=(permissions.IsAuthenticated,),
     authentication_classes=[],
 )

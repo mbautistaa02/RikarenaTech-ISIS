@@ -122,37 +122,15 @@ export const Sellers = () => {
           </button>
         </div>
 
-        {/* 🔸 Ordenar por */}
+        {/* 🔸 Ordenar por (default: Nombre) */}
         <div className="flex items-center gap-2">
           <span className="text-neutral-900 font-[Inter] font-medium text-base">
-            Sort by:
+            Sort by: Nombre
           </span>
-          <div className="relative">
-            <select className="appearance-none w-[180px] h-10 px-3 pr-8 border border-neutral-300 rounded-md font-[Inter] text-sm text-neutral-900 focus:outline-none">
-              <option>Nombre</option>
-              <option>Productos</option>
-              <option>Precio: mayor a menor</option>
-            </select>
-            {/* Ícono de flecha hacia abajo SVG */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-900 pointer-events-none"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
         </div>
       </div>
       {/* Grid vendedores */}
-      <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
+      < div className="w-full bg-neutral-50  px-8 md:px-32 py-10" >
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-8">
           {/* Vendedores */}
           {loading && (
@@ -198,7 +176,7 @@ export const Sellers = () => {
             </div>
           ))}
         </div>
-      </div>
-    </section>
+      </div >
+    </section >
   );
 };
