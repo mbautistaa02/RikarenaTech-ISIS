@@ -45,6 +45,28 @@ export const Profile: React.FC = () => {
     return selected?.municipalities ?? [];
   }, [departments, form.departmentId]);
 
+  // Memoize runValidation to avoid dependency array issues
+  const runValidationMemo = useMemo(() => {
+    return (nextForm: FormState): FormErrors => {
+      const e: FormErrors = {};
+      const bio = sanitizeText(nextForm.bio, 1000);
+      if (bio.length > 800)
+        e.bio = "Descripción muy larga (máx 800 caracteres).";
+
+      const phoneErr = validatePhone(nextForm.cellphone);
+      if (phoneErr) e.cellphone = phoneErr;
+
+      const picErr = validateImageUrl(nextForm.picture);
+      if (picErr) e.picture = picErr;
+
+      if (nextForm.municipalityId && !nextForm.departmentId) {
+        e.municipality = "Selecciona primero un departamento.";
+      }
+
+      return e;
+    };
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
@@ -82,7 +104,10 @@ export const Profile: React.FC = () => {
   // Simple sanitizers / validators (client-side)
   const sanitizeText = (value: string, maxLen = 1000) => {
     // Remove tags, control chars and trim
-    const withoutTags = value.replace(/<[^>]*>/g, "").replace(/[\x00-\x1F\x7F]/g, "");
+    const withoutTags = value
+      .replace(/<[^>]*>/g, "")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1F\x7F]/g, "");
     return withoutTags.trim().slice(0, maxLen);
   };
 
@@ -99,36 +124,18 @@ export const Profile: React.FC = () => {
 
   const validateImageUrl = (value: string) => {
     if (!value) return null;
-    
+
     // Permitir URLs https, http, o rutas relativas que parecen razonables
-    const isValidUrl = 
-      /^https?:\/\/.+/.test(value) ||  // URLs con https://http://
-      /^\//.test(value) ||              // Rutas relativas como /farmer.jpg
-      /^\.\//.test(value);              // Rutas relativas como ./image.jpg
-    
+    const isValidUrl =
+      /^https?:\/\/.+/.test(value) || // URLs con https://http://
+      /^\//.test(value) || // Rutas relativas como /farmer.jpg
+      /^\.\//.test(value); // Rutas relativas como ./image.jpg
+
     if (!isValidUrl) {
       return "La URL de imagen no parece válida.";
     }
-    
+
     return null;
-  };
-
-  const runValidation = (nextForm: FormState): FormErrors => {
-    const e: FormErrors = {};
-    const bio = sanitizeText(nextForm.bio, 1000);
-    if (bio.length > 800) e.bio = "Descripción muy larga (máx 800 caracteres).";
-
-    const phoneErr = validatePhone(nextForm.cellphone);
-    if (phoneErr) e.cellphone = phoneErr;
-
-    const picErr = validateImageUrl(nextForm.picture);
-    if (picErr) e.picture = picErr;
-
-    if (nextForm.municipalityId && !nextForm.departmentId) {
-      e.municipality = "Selecciona primero un departamento.";
-    }
-
-    return e;
   };
 
   useEffect(() => {
@@ -168,10 +175,10 @@ export const Profile: React.FC = () => {
   // Re-validate when form changes (but only if validation has been triggered)
   useEffect(() => {
     if (shouldValidate) {
-      const newErrors = runValidation(form);
+      const newErrors = runValidationMemo(form);
       setErrors(newErrors);
     }
-  }, [form, shouldValidate]);
+  }, [form, shouldValidate, runValidationMemo]);
 
   const handleSave = async () => {
     if (!myInfo?.username) return;
@@ -183,24 +190,32 @@ export const Profile: React.FC = () => {
       const cleanedPhone = (form.cellphone || "").replace(/[^0-9+]/g, "");
       const cleanedPicture = form.picture ? String(form.picture).trim() : "";
 
-      const nextErrors = runValidation({ ...form, bio: cleanedBio, cellphone: cleanedPhone, picture: cleanedPicture });
+      const nextErrors = runValidationMemo({
+        ...form,
+        bio: cleanedBio,
+        cellphone: cleanedPhone,
+        picture: cleanedPicture,
+      });
       setErrors(nextErrors);
       if (Object.keys(nextErrors).length > 0) {
-        showToast("error", "Corrige los errores del formulario antes de guardar.");
+        showToast(
+          "error",
+          "Corrige los errores del formulario antes de guardar.",
+        );
         setSaving(false);
         return;
       }
 
       const payload = {
         first_name: form.username,
-        bio: cleanedBio || null,
-        cellphone_number: cleanedPhone ? parseInt(cleanedPhone, 10) : null,
-        municipality: form.municipalityId && form.municipalityId !== "" ? form.municipalityId : null,
-        picture_url: cleanedPicture || null,
+        bio: cleanedBio || undefined,
+        cellphone_number: cleanedPhone ? parseInt(cleanedPhone, 10) : undefined,
+        municipality: form.municipalityId ? form.municipalityId : undefined,
+        picture_url: cleanedPicture || undefined,
       };
 
       const updated = await updateUserProfile(myInfo.username, payload);
-      
+
       if (updated && updated.username) {
         setMyInfo(updated);
         showToast("success", "Perfil actualizado correctamente.");
@@ -327,7 +342,9 @@ export const Profile: React.FC = () => {
             ))}
           </select>
           {errors.municipality && (
-            <div className="text-sm text-red-600 mt-1">{errors.municipality}</div>
+            <div className="text-sm text-red-600 mt-1">
+              {errors.municipality}
+            </div>
           )}
 
           <label className="font-medium text-[14px] text-neutral-900 mt-3">

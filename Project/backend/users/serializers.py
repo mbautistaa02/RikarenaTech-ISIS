@@ -34,10 +34,10 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         exclude = ["id", "user"]
         extra_kwargs = {
-            'cellphone_number': {'required': False, 'allow_null': True},
-            'picture_url': {'required': False, 'allow_null': True},
-            'bio': {'required': False, 'allow_null': True},
-            'municipality': {'required': False, 'allow_null': True},
+            "cellphone_number": {"required": False, "allow_null": True},
+            "picture_url": {"required": False, "allow_null": True},
+            "bio": {"required": False, "allow_null": True},
+            "municipality": {"required": False, "allow_null": True},
         }
 
     def to_representation(self, instance):
