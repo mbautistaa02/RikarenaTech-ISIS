@@ -152,7 +152,7 @@ export const Sellers = () => {
         </div>
       </div>
       {/* Grid vendedores */}
-      <div className="w-full bg-neutral-50  px-8 md:px-32 py-10">
+      <div className="w-full bg-neutral-50 px-8 md:px-32 py-10">
         <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 gap-8">
           {/* Vendedores */}
           {loading && (
