@@ -41,6 +41,16 @@ export default function EditCrop() {
     notes: "",
   });
 
+  const NOTES_MAX_WORDS = 255;
+
+  const countWords = (text: string) => {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  };
+
+  const notesWordCount = countWords(form.notes);
+  const notesExceeded = notesWordCount > NOTES_MAX_WORDS;
+
   // Cargar productos y datos del cultivo al montar
   useEffect(() => {
     const controller = new AbortController();
@@ -89,6 +99,13 @@ export default function EditCrop() {
               notes: cropData.notes || "",
             });
           }
+
+          if (notesExceeded) {
+            showToast(
+              "error",
+              `La descripción es muy larga (${notesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
+            );
+            return;
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -436,12 +453,26 @@ export default function EditCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               />
+              <div className="flex items-center justify-between mt-1">
+                <small
+                  className={`text-sm ${notesExceeded ? "text-red-600" : "text-neutral-500"}`}
+                >
+                  {notesExceeded
+                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).` 
+                    : `${notesWordCount} palabra(s)`}
+                </small>
+                {notesExceeded && (
+                  <small className="text-red-600 text-sm">
+                    Por favor reduzca la descripción.
+                  </small>
+                )}
+              </div>
             </div>
 
             {/* Botón actualizar cultivo */}
             <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || notesExceeded}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

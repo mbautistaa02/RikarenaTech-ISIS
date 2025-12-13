@@ -38,6 +38,16 @@ export default function CreateCrop() {
     notes: "",
   });
 
+  const NOTES_MAX_WORDS = 255;
+
+  const countWords = (text: string) => {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  };
+
+  const notesWordCount = countWords(form.notes);
+  const notesExceeded = notesWordCount > NOTES_MAX_WORDS;
+
   // Cargar productos al montar el componente
   useEffect(() => {
     const controller = new AbortController();
@@ -102,6 +112,14 @@ export default function CreateCrop() {
       showToast(
         "error",
         "La cantidad de producción debe ser un número positivo.",
+      );
+      return;
+    }
+
+    if (notesExceeded) {
+      showToast(
+        "error",
+        `La descripción es muy larga (${notesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
       );
       return;
     }
@@ -395,12 +413,26 @@ export default function CreateCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               />
+              <div className="flex items-center justify-between mt-1">
+                <small
+                  className={`text-sm ${notesExceeded ? "text-red-600" : "text-neutral-500"}`}
+                >
+                  {notesExceeded
+                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).` 
+                    : `${notesWordCount} palabra(s)`}
+                </small>
+                {notesExceeded && (
+                  <small className="text-red-600 text-sm">
+                    Por favor reduzca la descripción.
+                  </small>
+                )}
+              </div>
             </div>
 
             {/* Botón crear cultivo */}
             <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || notesExceeded}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

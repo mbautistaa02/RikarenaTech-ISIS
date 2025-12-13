@@ -86,6 +86,23 @@ class CropSerializer(serializers.ModelSerializer):
         if errors:
             raise serializers.ValidationError(errors)
 
+        # Notes word count validation (max 255 words)
+        notes = (
+            attrs.get("notes")
+            if attrs.get("notes") is not None
+            else (self.initial_data.get("notes") if self.initial_data else "")
+        )
+        if notes:
+            # Count words by splitting on whitespace
+            words_count = len([w for w in notes.strip().split() if w])
+            if words_count > 255:
+                errors.setdefault("notes", []).append(
+                    f"La descripción es muy larga ({words_count} palabras). Máximo permitido: 255 palabras."
+                )
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
         return attrs
 
     def create(self, validated_data):

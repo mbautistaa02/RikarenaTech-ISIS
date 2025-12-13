@@ -127,3 +127,27 @@ class CropsAPITest(APITestCase):
         # only one record should match user1
         self.assertTrue(any(r.get("user_id") == self.user1.id for r in results))
         self.assertFalse(any(r.get("user_id") == self.user2.id for r in results))
+
+    def test_notes_word_limit_exceeded(self):
+        # Ensure creating a crop with more than 255 words in notes fails
+        self.client.force_authenticate(user=self.user1)
+
+        long_notes = "word " * 256
+        payload = {
+            "product": self.product.product_id,
+            "start_date": "2025-01-01",
+            "harvest_date": "2025-06-01",
+            "area": 1.5,
+            "crop_type": "Hybrid",
+            "fertilizer_type": "organic",
+            "production_qty": 100.0,
+            "irrigation_method": "drip",
+            "notes": long_notes,
+        }
+
+        resp = self.client.post("/api/crops/", payload, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        # Ensure the error message indicates the notes exceed the word limit
+        data = resp.data
+        self.assertIn("notes", data)
+        self.assertTrue(any("Máximo" in str(m) or "255" in str(m) for m in data["notes"]))
