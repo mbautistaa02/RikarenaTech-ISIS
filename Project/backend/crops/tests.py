@@ -149,5 +149,30 @@ class CropsAPITest(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         # Ensure the error message indicates the notes exceed the word limit
         data = resp.data
-        self.assertIn("notes", data)
-        self.assertTrue(any("Máximo" in str(m) or "255" in str(m) for m in data["notes"]))
+        errors = data.get("validation_errors") or data
+        self.assertIn("notes", errors)
+        self.assertTrue(any("Máximo" in str(m) or "255" in str(m) for m in errors["notes"]))
+
+    def test_crop_type_word_limit_exceeded(self):
+        # Ensure creating a crop with more than 10 words in crop_type fails
+        self.client.force_authenticate(user=self.user1)
+
+        long_crop_type = "type " * 11
+        payload = {
+            "product": self.product.product_id,
+            "start_date": "2025-01-01",
+            "harvest_date": "2025-06-01",
+            "area": 1.5,
+            "crop_type": long_crop_type,
+            "fertilizer_type": "organic",
+            "production_qty": 100.0,
+            "irrigation_method": "drip",
+            "notes": "ok",
+        }
+
+        resp = self.client.post("/api/crops/", payload, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        data = resp.data
+        errors = data.get("validation_errors") or data
+        self.assertIn("crop_type", errors)
+        self.assertTrue(any("Máximo" in str(m) or "10" in str(m) for m in errors["crop_type"]))

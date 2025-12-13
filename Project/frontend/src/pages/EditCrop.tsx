@@ -42,6 +42,7 @@ export default function EditCrop() {
   });
 
   const NOTES_MAX_WORDS = 255;
+  const CROP_TYPE_MAX_WORDS = 10;
 
   const countWords = (text: string) => {
     if (!text) return 0;
@@ -50,6 +51,8 @@ export default function EditCrop() {
 
   const notesWordCount = countWords(form.notes);
   const notesExceeded = notesWordCount > NOTES_MAX_WORDS;
+  const cropTypeWordCount = countWords(form.crop_type);
+  const cropTypeExceeded = cropTypeWordCount > CROP_TYPE_MAX_WORDS;
 
   // Cargar productos y datos del cultivo al montar
   useEffect(() => {
@@ -137,6 +140,14 @@ export default function EditCrop() {
     // Validar campos requeridos
     if (form.product === "" || !form.product) {
       showToast("error", "Debes seleccionar un producto.");
+      return;
+    }
+
+    if (cropTypeExceeded) {
+      showToast(
+        "error",
+        `El tipo de cultivo es muy largo (${cropTypeWordCount} palabras). Máximo permitido: ${CROP_TYPE_MAX_WORDS} palabras.`,
+      );
       return;
     }
     if (!form.start_date.trim()) {
@@ -336,7 +347,8 @@ export default function EditCrop() {
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
                 Tipo de cultivo *
               </label>
-              <input
+              <div>
+                <input
                 type="text"
                 name="crop_type"
                 value={form.crop_type}
@@ -350,6 +362,13 @@ export default function EditCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               />
+                <div className="flex items-center justify-between mt-1">
+                  <small className={`text-sm ${cropTypeExceeded ? "text-red-600" : "text-neutral-500"}`}>
+                    {cropTypeExceeded ? `Tipo muy largo (máx ${CROP_TYPE_MAX_WORDS} palabras).` : `${cropTypeWordCount} palabra(s)`}
+                  </small>
+                  {cropTypeExceeded && <small className="text-red-600 text-sm">Por favor reduzca el tipo de cultivo.</small>}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -472,7 +491,7 @@ export default function EditCrop() {
             {/* Botón actualizar cultivo */}
             <button
               onClick={handleSave}
-              disabled={isLoading || notesExceeded}
+              disabled={isLoading || notesExceeded || cropTypeExceeded}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

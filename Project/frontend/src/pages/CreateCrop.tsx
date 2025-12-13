@@ -39,6 +39,7 @@ export default function CreateCrop() {
   });
 
   const NOTES_MAX_WORDS = 255;
+  const CROP_TYPE_MAX_WORDS = 10;
 
   const countWords = (text: string) => {
     if (!text) return 0;
@@ -47,6 +48,8 @@ export default function CreateCrop() {
 
   const notesWordCount = countWords(form.notes);
   const notesExceeded = notesWordCount > NOTES_MAX_WORDS;
+  const cropTypeWordCount = countWords(form.crop_type);
+  const cropTypeExceeded = cropTypeWordCount > CROP_TYPE_MAX_WORDS;
 
   // Cargar productos al montar el componente
   useEffect(() => {
@@ -120,6 +123,14 @@ export default function CreateCrop() {
       showToast(
         "error",
         `La descripción es muy larga (${notesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
+      );
+      return;
+    }
+
+    if (cropTypeExceeded) {
+      showToast(
+        "error",
+        `El tipo de cultivo es muy largo (${cropTypeWordCount} palabras). Máximo permitido: ${CROP_TYPE_MAX_WORDS} palabras.`,
       );
       return;
     }
@@ -296,7 +307,8 @@ export default function CreateCrop() {
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
                 Tipo de cultivo *
               </label>
-              <input
+              <div>
+                <input
                 type="text"
                 name="crop_type"
                 value={form.crop_type}
@@ -310,6 +322,13 @@ export default function CreateCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               />
+                <div className="flex items-center justify-between mt-1">
+                  <small className={`text-sm ${cropTypeExceeded ? "text-red-600" : "text-neutral-500"}`}>
+                    {cropTypeExceeded ? `Tipo muy largo (máx ${CROP_TYPE_MAX_WORDS} palabras).` : `${cropTypeWordCount} palabra(s)`}
+                  </small>
+                  {cropTypeExceeded && <small className="text-red-600 text-sm">Por favor reduzca el tipo de cultivo.</small>}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -432,7 +451,7 @@ export default function CreateCrop() {
             {/* Botón crear cultivo */}
             <button
               onClick={handleSave}
-              disabled={isLoading || notesExceeded}
+              disabled={isLoading || notesExceeded || cropTypeExceeded}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

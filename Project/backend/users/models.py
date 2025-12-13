@@ -8,6 +8,8 @@ class Profile(models.Model):
     """Model for user profiles"""
 
     cellphone_number = models.BigIntegerField(unique=True, null=True, blank=True)
+    # role kept for compatibility with migrations and historical records
+    role = models.CharField(max_length=50, default="user")
     registration_date = models.DateTimeField(auto_now_add=True)
     picture_url = models.URLField(max_length=200, blank=True, null=True)
     bio = models.TextField(
