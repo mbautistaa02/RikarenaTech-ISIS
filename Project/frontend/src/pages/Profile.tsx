@@ -210,7 +210,10 @@ export const Profile: React.FC = () => {
         first_name: form.username,
         bio: cleanedBio || undefined,
         cellphone_number: cleanedPhone ? parseInt(cleanedPhone, 10) : undefined,
-        municipality: form.municipalityId === "" ? undefined : (form.municipalityId as number),
+        municipality:
+          form.municipalityId === ""
+            ? undefined
+            : (form.municipalityId as number),
         picture_url: cleanedPicture || undefined,
       };
 
