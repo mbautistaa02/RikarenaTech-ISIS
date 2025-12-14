@@ -151,7 +151,9 @@ class CropsAPITest(APITestCase):
         data = resp.data
         errors = data.get("validation_errors") or data
         self.assertIn("notes", errors)
-        self.assertTrue(any("Máximo" in str(m) or "255" in str(m) for m in errors["notes"]))
+        self.assertTrue(
+            any("Máximo" in str(m) or "255" in str(m) for m in errors["notes"])
+        )
 
     def test_crop_type_word_limit_exceeded(self):
         # Ensure creating a crop with more than 10 words in crop_type fails
@@ -175,4 +177,6 @@ class CropsAPITest(APITestCase):
         data = resp.data
         errors = data.get("validation_errors") or data
         self.assertIn("crop_type", errors)
-        self.assertTrue(any("Máximo" in str(m) or "10" in str(m) for m in errors["crop_type"]))
+        self.assertTrue(
+            any("Máximo" in str(m) or "10" in str(m) for m in errors["crop_type"])
+        )
