@@ -7,8 +7,12 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
-const tsconfigRootDir = new URL(".", import.meta.url).pathname;
+// Get the directory of the current file (Windows & cross-platform compatible)
+const __filename = fileURLToPath(import.meta.url);
+const tsconfigRootDir = dirname(__filename);
 
 export default tseslint.config(
   { ignores: ["dist", "node_modules", "eslint.config.ts"] },

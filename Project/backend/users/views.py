@@ -233,7 +233,7 @@ class ProfileDetailApiView(APIView):
         # Refresh user to get updated data
         user.refresh_from_db()
         user.profile.refresh_from_db()
-        
+
         # Devuelve el usuario completo actualizado con grupos
         full_user_serializer = CurrentUserSerializer(user)
         return Response(full_user_serializer.data, status=status.HTTP_200_OK)
