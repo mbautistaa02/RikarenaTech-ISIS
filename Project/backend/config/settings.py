@@ -291,7 +291,7 @@ AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")
 
 # Image upload settings
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
-MAX_IMAGES_PER_POST = 10
+MAX_IMAGES_PER_POST = 3
 SUPPORTED_IMAGE_FORMATS = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
 
 # S3 settings

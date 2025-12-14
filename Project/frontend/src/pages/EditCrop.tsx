@@ -41,6 +41,19 @@ export default function EditCrop() {
     notes: "",
   });
 
+  const NOTES_MAX_WORDS = 255;
+  const CROP_TYPE_MAX_WORDS = 10;
+
+  const countWords = (text: string) => {
+    if (!text) return 0;
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  };
+
+  const notesWordCount = countWords(form.notes);
+  const notesExceeded = notesWordCount > NOTES_MAX_WORDS;
+  const cropTypeWordCount = countWords(form.crop_type);
+  const cropTypeExceeded = cropTypeWordCount > CROP_TYPE_MAX_WORDS;
+
   // Cargar productos y datos del cultivo al montar
   useEffect(() => {
     const controller = new AbortController();
@@ -89,6 +102,17 @@ export default function EditCrop() {
               notes: cropData.notes || "",
             });
           }
+
+          const localNotesWordCount = countWords(cropData.notes || "");
+          const localNotesExceeded = localNotesWordCount > NOTES_MAX_WORDS;
+
+          if (localNotesExceeded) {
+            showToast(
+              "error",
+              `La descripción es muy larga (${localNotesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
+            );
+            return;
+          }
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -120,6 +144,14 @@ export default function EditCrop() {
     // Validar campos requeridos
     if (form.product === "" || !form.product) {
       showToast("error", "Debes seleccionar un producto.");
+      return;
+    }
+
+    if (cropTypeExceeded) {
+      showToast(
+        "error",
+        `El tipo de cultivo es muy largo (${cropTypeWordCount} palabras). Máximo permitido: ${CROP_TYPE_MAX_WORDS} palabras.`,
+      );
       return;
     }
     if (!form.start_date.trim()) {
@@ -319,20 +351,38 @@ export default function EditCrop() {
               <label className="font-[Inter] text-sm font-medium text-neutral-900">
                 Tipo de cultivo *
               </label>
-              <input
-                type="text"
-                name="crop_type"
-                value={form.crop_type}
-                onChange={handleInputChange}
-                placeholder="Ej: Cultivo hidropónico"
-                className="
-                w-full h-[49px] px-3
-                font-[Inter] text-sm
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                hover:border-neutral-300
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
-              />
+              <div>
+                <input
+                  type="text"
+                  name="crop_type"
+                  value={form.crop_type}
+                  onChange={handleInputChange}
+                  placeholder="Ej: Cultivo hidropónico"
+                  className="
+                    w-full h-[49px] px-3
+                    font-[Inter] text-sm
+                    bg-neutral-200/10 border border-neutral-300 rounded-md
+                    hover:border-neutral-300
+                    focus:outline-none focus:ring-2 focus:ring-neutral-300/30
+                  "
+                />
+
+                <div className="flex items-center justify-between mt-1">
+                  <small
+                    className={`text-sm ${cropTypeExceeded ? "text-red-600" : "text-neutral-500"}`}
+                  >
+                    {cropTypeExceeded
+                      ? `Tipo muy largo (máx ${CROP_TYPE_MAX_WORDS} palabras).`
+                      : `${cropTypeWordCount} palabra(s)`}
+                  </small>
+
+                  {cropTypeExceeded && (
+                    <small className="text-red-600 text-sm">
+                      Por favor reduzca el tipo de cultivo.
+                    </small>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -436,12 +486,26 @@ export default function EditCrop() {
                 focus:outline-none focus:ring-2 focus:ring-neutral-300/30
               "
               />
+              <div className="flex items-center justify-between mt-1">
+                <small
+                  className={`text-sm ${notesExceeded ? "text-red-600" : "text-neutral-500"}`}
+                >
+                  {notesExceeded
+                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).`
+                    : `${notesWordCount} palabra(s)`}
+                </small>
+                {notesExceeded && (
+                  <small className="text-red-600 text-sm">
+                    Por favor reduzca la descripción.
+                  </small>
+                )}
+              </div>
             </div>
 
             {/* Botón actualizar cultivo */}
             <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || notesExceeded || cropTypeExceeded}
               className="
               w-full h-[40px] mt-8
               bg-[#448502] text-white rounded-md

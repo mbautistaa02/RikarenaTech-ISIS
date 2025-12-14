@@ -2,6 +2,7 @@ from drf_yasg import openapi
 from drf_yasg.generators import OpenAPISchemaGenerator
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
+from rest_framework.authentication import SessionAuthentication
 
 
 class CustomSchemaGenerator(OpenAPISchemaGenerator):
@@ -66,7 +67,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     generator_class=CustomSchemaGenerator,
-    public=True,
-    permission_classes=(permissions.AllowAny,),
-    authentication_classes=[],
+    public=False,
+    permission_classes=(permissions.IsAdminUser,),
+    authentication_classes=[SessionAuthentication],
 )

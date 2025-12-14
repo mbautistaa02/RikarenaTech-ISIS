@@ -230,8 +230,12 @@ class ProfileDetailApiView(APIView):
                     user_serializer.errors, status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # Devuelve el usuario completo actualizado
-        full_user_serializer = UserSerializer(user)
+        # Refresh user to get updated data
+        user.refresh_from_db()
+        user.profile.refresh_from_db()
+
+        # Devuelve el usuario completo actualizado con grupos
+        full_user_serializer = CurrentUserSerializer(user)
         return Response(full_user_serializer.data, status=status.HTTP_200_OK)
 
 
@@ -538,7 +542,7 @@ class DepartmentListApiView(APIView):
             "Includes municipality count for each department."
         ),
         tags=["Departments & Municipalities"],
-        responses={200: "DepartmentWithMunicipalitiesSerializer(many=True)"},
+        responses={200: DepartmentWithMunicipalitiesSerializer(many=True)},
     )
     def get(self, request):
         """Return all departments with nested municipalities."""
