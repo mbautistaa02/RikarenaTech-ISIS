@@ -4,8 +4,23 @@ export type PostImage = {
 
 export type PostItem = {
   is_available?: boolean;
+  status?: string;
+  visibility?: string;
+  is_featured?: boolean;
+  review_notes?: string;
+  user?: {
+    username?: string;
+  };
+  reviewed_by?: {
+    username?: string;
+  };
+  reviewed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string;
   category?: {
     id?: string | number;
+    name?: string;
   };
   id: number;
   title: string;

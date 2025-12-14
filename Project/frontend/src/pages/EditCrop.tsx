@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { showToast } from "@/lib/toast";
 import {
-  createCrop,
+  getCrop,
+  patchMyCrop,
   getProducts,
   getIrrigationMethods,
   getFertilizerTypes,
@@ -22,10 +23,12 @@ type FormState = {
   notes: string;
 };
 
-export default function CreateCrop() {
+export default function EditCrop() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [form, setForm] = useState<FormState>({
     product: "",
     start_date: "",
@@ -51,31 +54,79 @@ export default function CreateCrop() {
   const cropTypeWordCount = countWords(form.crop_type);
   const cropTypeExceeded = cropTypeWordCount > CROP_TYPE_MAX_WORDS;
 
-  // Cargar productos al montar el componente
+  // Cargar productos y datos del cultivo al montar
   useEffect(() => {
     const controller = new AbortController();
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
+        setIsLoadingData(true);
+
+        // Cargar productos
         console.log("Cargando productos...");
         const productsList = await getProducts(controller.signal);
         console.log("Productos cargados:", productsList);
-
         if (productsList && productsList.length > 0) {
           setProducts(productsList);
-        } else {
-          console.warn("No se encontraron productos");
-          setProducts([]);
+        }
+
+        // Cargar datos del cultivo
+        if (id) {
+          console.log(`Cargando cultivo con ID ${id}...`);
+          const cropData = await getCrop(id, controller.signal);
+          console.log("Cultivo cargado:", cropData);
+
+          if (cropData) {
+            setForm({
+              product:
+                cropData.product && typeof cropData.product === "object"
+                  ? cropData.product.product_id
+                  : (cropData.product as number),
+              start_date: cropData.start_date,
+              harvest_date: cropData.harvest_date,
+              area: cropData.area,
+              crop_type: cropData.crop_type,
+              fertilizer_type:
+                (cropData.fertilizer_type as
+                  | "none"
+                  | "organic"
+                  | "chemical"
+                  | "mixed") || "none",
+              production_qty: cropData.production_qty,
+              irrigation_method:
+                (cropData.irrigation_method as
+                  | "none"
+                  | "gravity"
+                  | "drip"
+                  | "sprinkler"
+                  | "other") || "none",
+              notes: cropData.notes || "",
+            });
+          }
+
+          const localNotesWordCount = countWords(cropData.notes || "");
+          const localNotesExceeded = localNotesWordCount > NOTES_MAX_WORDS;
+
+          if (localNotesExceeded) {
+            showToast(
+              "error",
+              `La descripción es muy larga (${localNotesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
+            );
+            return;
+          }
         }
       } catch (err) {
-        console.error("Error fetching products:", err);
-        showToast("error", "Error al cargar los productos");
-        setProducts([]);
+        if (!controller.signal.aborted) {
+          console.error("Error loading data:", err);
+          showToast("error", "Error al cargar los datos");
+        }
+      } finally {
+        setIsLoadingData(false);
       }
     };
 
-    loadProducts();
+    loadData();
     return () => controller.abort();
-  }, []);
+  }, [id]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -91,8 +142,16 @@ export default function CreateCrop() {
 
   const handleSave = async () => {
     // Validar campos requeridos
-    if (form.product === "") {
+    if (form.product === "" || !form.product) {
       showToast("error", "Debes seleccionar un producto.");
+      return;
+    }
+
+    if (cropTypeExceeded) {
+      showToast(
+        "error",
+        `El tipo de cultivo es muy largo (${cropTypeWordCount} palabras). Máximo permitido: ${CROP_TYPE_MAX_WORDS} palabras.`,
+      );
       return;
     }
     if (!form.start_date.trim()) {
@@ -119,28 +178,17 @@ export default function CreateCrop() {
       return;
     }
 
-    if (notesExceeded) {
-      showToast(
-        "error",
-        `La descripción es muy larga (${notesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
-      );
-      return;
-    }
-
-    if (cropTypeExceeded) {
-      showToast(
-        "error",
-        `El tipo de cultivo es muy largo (${cropTypeWordCount} palabras). Máximo permitido: ${CROP_TYPE_MAX_WORDS} palabras.`,
-      );
-      return;
-    }
-
     // Validar que harvest_date sea después de start_date
     if (new Date(form.harvest_date) <= new Date(form.start_date)) {
       showToast(
         "error",
         "La fecha de cosecha debe ser posterior a la de inicio.",
       );
+      return;
+    }
+
+    if (!id) {
+      showToast("error", "ID del cultivo no encontrado.");
       return;
     }
 
@@ -159,22 +207,9 @@ export default function CreateCrop() {
         notes: form.notes,
       };
 
-      console.log("Enviando payload:", payload);
-      await createCrop(payload);
-      showToast("success", "Cultivo creado correctamente.");
-
-      // Limpiar el formulario
-      setForm({
-        product: "",
-        start_date: "",
-        harvest_date: "",
-        area: "",
-        crop_type: "",
-        fertilizer_type: "none",
-        production_qty: "",
-        irrigation_method: "none",
-        notes: "",
-      });
+      console.log("Enviando payload para actualizar:", payload);
+      await patchMyCrop(id, payload);
+      showToast("success", "Cultivo actualizado correctamente.");
 
       // Redirigir después de 2 segundos
       setTimeout(() => {
@@ -182,18 +217,28 @@ export default function CreateCrop() {
       }, 2000);
     } catch (err: any) {
       const message = err instanceof Error ? err.message : "Error desconocido";
-      showToast("error", "Error al crear el cultivo: " + message);
+      showToast("error", "Error al actualizar el cultivo: " + message);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="w-full min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="animate-pulse text-neutral-500">
+          Cargando datos del cultivo...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-gray-50 px-8 flex flex-col gap-10">
       <div className="w-full min-h-screen bg-gray-50 py-10 flex flex-col gap-10">
         {/* Título */}
         <h1 className="font-[Outfit] text-[30px] font-bold text-neutral-900">
-          Crear nuevo cultivo
+          Editar cultivo
         </h1>
 
         {/* Contenedor principal */}
@@ -226,7 +271,6 @@ export default function CreateCrop() {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/30
                 "
                 >
-                  <option value="">-- Seleccionar un producto --</option>
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.label}
@@ -458,7 +502,7 @@ export default function CreateCrop() {
               </div>
             </div>
 
-            {/* Botón crear cultivo */}
+            {/* Botón actualizar cultivo */}
             <button
               onClick={handleSave}
               disabled={isLoading || notesExceeded || cropTypeExceeded}
@@ -472,7 +516,7 @@ export default function CreateCrop() {
               transition-colors
             "
             >
-              {isLoading ? "Creando cultivo..." : "Crear cultivo"}
+              {isLoading ? "Actualizando cultivo..." : "Actualizar cultivo"}
             </button>
           </div>
         </div>

@@ -5,9 +5,12 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import EditCrop from "@/pages/EditCrop.tsx";
+
 import { Footer } from "./Components/Footer.tsx";
 import { Header } from "./Components/Header";
 import Alerts from "./pages/Alerts.tsx";
+import { Contact } from "./pages/Contact.tsx";
 import CreateCrop from "./pages/CreateCrop.tsx";
 import { CreatePost } from "./pages/CreatePost.tsx";
 import { EditPost } from "./pages/EditPost.tsx";
@@ -37,6 +40,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/create_post" element={<CreatePost />} />
             <Route path="/create_crop" element={<CreateCrop />} />
+            <Route path="/edit_crop/:id" element={<EditCrop />} />
             <Route path="/my_products" element={<MyProducts />} />
             <Route
               path="/products-by-seller/:id"
@@ -46,6 +50,7 @@ function App() {
             <Route path="/edit_post/:id" element={<EditPost />} />
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/moderador" element={<PanelDeModerador />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </main>
 
