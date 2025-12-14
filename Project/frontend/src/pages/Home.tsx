@@ -206,7 +206,7 @@ export const Home: React.FC = () => {
           <input
             type="text"
             placeholder="Buscar producto..."
-            className="flex-1 h-10 px-3 text-sm outline-none font-[Inter] border border-neutral-300 border-r-0 rounded-l-md"
+            className="flex-1 h-11 px-3 text-sm outline-none font-[Inter] border border-neutral-300 border-r-0 rounded-l-md"
             value={search}
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
