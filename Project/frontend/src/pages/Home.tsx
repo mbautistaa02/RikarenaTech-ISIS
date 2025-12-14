@@ -284,7 +284,7 @@ export const Home: React.FC = () => {
       <div className="w-full max-w-[1184px] bg-neutral-100 border border-neutral-200 shadow-sm rounded-lg mt-10 px-4 py-5 flex flex-col gap-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* 🔸 Campo de búsqueda */}
-          <div className="flex w-full md:max-w-[480px]">
+          <div className="flex w-full">
             <input
               type="text"
               placeholder="Buscar producto o región..."
