@@ -542,7 +542,7 @@ class DepartmentListApiView(APIView):
             "Includes municipality count for each department."
         ),
         tags=["Departments & Municipalities"],
-        responses={200: "DepartmentWithMunicipalitiesSerializer(many=True)"},
+        responses={200: DepartmentWithMunicipalitiesSerializer(many=True)},
     )
     def get(self, request):
         """Return all departments with nested municipalities."""
