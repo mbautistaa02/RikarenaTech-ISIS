@@ -2,6 +2,7 @@ from django.db.models import Q
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
@@ -116,3 +117,29 @@ class AlertViewSet(viewsets.ReadOnlyModelViewSet):
         # Return the created alert with read serializer
         read_serializer = AlertReadSerializer(alert, context={"request": request})
         return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def my_alerts(self, request):
+        """
+        Get all alerts created by the current user (moderator).
+        Endpoint: /api/alerts/my_alerts/
+        """
+        queryset = (
+            Alert.objects.filter(created_by=request.user)
+            .select_related("category", "created_by", "department")
+            .prefetch_related("images")
+            .order_by("-created_at")
+        )
+
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = AlertReadSerializer(
+                page, many=True, context={"request": request}
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = AlertReadSerializer(
+            queryset, many=True, context={"request": request}
+        )
+        return Response(serializer.data)

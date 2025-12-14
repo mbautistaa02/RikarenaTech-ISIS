@@ -124,9 +124,7 @@ export const Sellers = () => {
 
         {/* 🔸 Ordenar por (default: Nombre) */}
         <div className="flex items-center gap-2">
-          <span className="text-neutral-900 font-[Inter] font-medium text-base">
-            Sort by: Nombre
-          </span>
+          <span className="text-neutral-900 font-[Inter] font-medium text-base"></span>
         </div>
       </div>
       {/* Grid vendedores */}

@@ -25,6 +25,24 @@ interface AlertCategory {
   description: string;
 }
 
+interface AlertImage {
+  image: string;
+  uploaded_at: string;
+}
+
+interface Alert {
+  id: number;
+  alert_title: string;
+  alert_message: string;
+  category: AlertCategory;
+  scope: string;
+  department_name: string | null;
+  images: AlertImage[];
+  created_at: string;
+  updated_at: string;
+  created_by_username: string;
+}
+
 export default function PanelDeModerador() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedScope, setSelectedScope] = useState("Global");
@@ -48,13 +66,20 @@ export default function PanelDeModerador() {
   const [statusSelection, setStatusSelection] = useState<
     Record<number, string>
   >({});
+  const [titleHasSpecialChars, setTitleHasSpecialChars] = useState(false);
+  const [descriptionHasSpecialChars, setDescriptionHasSpecialChars] =
+    useState(false);
+  const [showMyAlertsSection, setShowMyAlertsSection] = useState(false);
+  const [myAlerts, setMyAlerts] = useState<Alert[]>([]);
+  const [myAlertsLoading, setMyAlertsLoading] = useState(false);
+  const [myAlertsError, setMyAlertsError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSelectFiles = (files: FileList | null) => {
     if (!files) return;
     const filesArr = Array.from(files);
 
-    const MAX_IMAGES = 10;
+    const MAX_IMAGES = 3;
     const currentCount = alertImages.length;
     const newCount = currentCount + filesArr.length;
 
@@ -163,14 +188,86 @@ export default function PanelDeModerador() {
     [],
   );
 
+  const fetchMyAlerts = useCallback(async () => {
+    setMyAlertsLoading(true);
+    setMyAlertsError(null);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/alerts/my_alerts/`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        setMyAlerts(result.data || []);
+      } else {
+        const errorData = await response.json();
+        setMyAlertsError(errorData.message || "Error al cargar tus alertas");
+      }
+    } catch (error) {
+      console.error("Error fetching my alerts:", error);
+      setMyAlertsError("Error al cargar tus alertas");
+    } finally {
+      setMyAlertsLoading(false);
+    }
+  }, []);
+
+  // Load my alerts when section is shown
+  useEffect(() => {
+    if (showMyAlertsSection && myAlerts.length === 0) {
+      fetchMyAlerts();
+    }
+  }, [showMyAlertsSection, myAlerts.length, fetchMyAlerts]);
+
+  const validateAlertTitle = (value: string): boolean => {
+    // Solo letras, números, espacios, puntos, comas y guiones
+    const validPattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,-]+$/;
+    return validPattern.test(value);
+  };
+
+  const validateAlertDescription = (value: string): boolean => {
+    // Solo letras, números, espacios, puntos, comas, guiones y saltos de línea
+    const validPattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s.,\n-]+$/;
+    return validPattern.test(value);
+  };
+
   const handleSubmit = async () => {
     // Validaciones básicas
     if (!alertTitle.trim()) {
       showToast("error", "Por favor ingresa un título para la alerta");
       return;
     }
+    if (alertTitle.length > 50) {
+      showToast("error", "El título no puede exceder los 50 caracteres.");
+      return;
+    }
+    if (!validateAlertTitle(alertTitle)) {
+      showToast(
+        "error",
+        "El título no puede contener caracteres especiales. Solo letras, números, espacios, puntos, comas y guiones.",
+      );
+      return;
+    }
     if (!alertDescription.trim()) {
       showToast("error", "Por favor ingresa una descripción para la alerta");
+      return;
+    }
+    if (alertDescription.length > 800) {
+      showToast("error", "La descripción no puede exceder los 800 caracteres.");
+      return;
+    }
+    if (!validateAlertDescription(alertDescription)) {
+      showToast(
+        "error",
+        "La descripción no puede contener caracteres especiales. Solo letras, números, espacios, puntos, comas y guiones.",
+      );
       return;
     }
     if (!selectedCategory) {
@@ -183,7 +280,7 @@ export default function PanelDeModerador() {
     }
 
     // Validar número máximo de imágenes
-    const MAX_IMAGES = 10;
+    const MAX_IMAGES = 3;
     if (alertImages.length > MAX_IMAGES) {
       showToast(
         "error",
@@ -456,38 +553,75 @@ export default function PanelDeModerador() {
               <div className="flex flex-col gap-1">
                 <label className="font-[Inter] text-sm font-medium text-neutral-900">
                   Titulo de la Alerta
+                  <span className="text-neutral-500 ml-2">
+                    ({alertTitle.length}/50 caracteres)
+                  </span>
                 </label>
                 <input
                   type="text"
                   placeholder=""
+                  maxLength={50}
                   value={alertTitle}
-                  onChange={(e) => setAlertTitle(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setAlertTitle(value);
+                    setTitleHasSpecialChars(
+                      !validateAlertTitle(value) && value.length > 0,
+                    );
+                  }}
                   className="w-full h-[45px] px-3 font-[Inter] text-sm bg-neutral-200/10 
                     border border-neutral-300 rounded-md focus:ring-2 
                     focus:ring-neutral-300/30 focus:outline-none"
                 />
+                {titleHasSpecialChars && (
+                  <p className="text-red-600 text-xs mt-1">
+                    ⚠️ El título contiene caracteres especiales no permitidos.
+                    Solo se permiten letras, números, espacios, puntos, comas y
+                    guiones.
+                  </p>
+                )}
               </div>
 
               {/* ----- Campo: Descripción ----- */}
               <div className="flex flex-col gap-1">
                 <label className="font-[Inter] text-sm font-medium text-neutral-900">
                   Descripción
+                  <span className="text-neutral-500 ml-2">
+                    ({alertDescription.length}/800 caracteres)
+                  </span>
                 </label>
 
                 <textarea
                   placeholder=""
                   value={alertDescription}
-                  onChange={(e) => setAlertDescription(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setAlertDescription(value);
+                    setDescriptionHasSpecialChars(
+                      !validateAlertDescription(value) && value.length > 0,
+                    );
+                  }}
+                  maxLength={800}
                   className="w-full h-[120px] px-3 py-2 font-[Inter] text-sm text-neutral-900 
                     bg-neutral-200/10 border border-neutral-300 rounded-md 
                     focus:ring-2 focus:ring-neutral-300/30 focus:outline-none"
                 />
+                {descriptionHasSpecialChars && (
+                  <p className="text-red-600 text-xs mt-1">
+                    ⚠️ La descripción contiene caracteres especiales no
+                    permitidos. Solo se permiten letras, números, espacios,
+                    puntos, comas y guiones.
+                  </p>
+                )}
               </div>
 
               {/* ----- Subida de imagen ----- */}
               <div className="flex flex-col gap-2">
                 <label className="font-[Inter] text-sm font-medium text-neutral-900">
                   Imágenes de la Alerta
+                  <span className="text-neutral-500 ml-2">
+                    ( Maximo 3 imágenes)
+                  </span>
                 </label>
 
                 <input
@@ -643,7 +777,9 @@ export default function PanelDeModerador() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={
+                  loading || titleHasSpecialChars || descriptionHasSpecialChars
+                }
                 className="w-full h-[45px] bg-[#448502] text-white rounded-md 
                   font-[Inter] font-semibold hover:bg-[#3C7602] active:bg-[#2F5D01]
                   disabled:opacity-50 disabled:cursor-not-allowed"
@@ -661,6 +797,115 @@ export default function PanelDeModerador() {
                 Cancelar
               </button>
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* ---------- Sección: Mis alertas creadas ---------- */}
+      <section className="bg-white shadow-sm rounded-xl p-8 max-w-7xl mx-auto w-full">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-[Outfit] text-[22px] font-semibold text-neutral-900">
+            Mis alertas creadas
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowMyAlertsSection((prev) => !prev)}
+            className="text-sm font-[Inter] text-[#448502] hover:text-[#3C7602]"
+          >
+            {showMyAlertsSection ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
+
+        {showMyAlertsSection && (
+          <div className="mt-6">
+            {myAlertsLoading && (
+              <div className="text-center text-neutral-600 py-8">
+                Cargando tus alertas...
+              </div>
+            )}
+
+            {myAlertsError && (
+              <div className="text-center text-red-600 py-8">
+                {myAlertsError}
+              </div>
+            )}
+
+            {!myAlertsLoading && !myAlertsError && myAlerts.length === 0 && (
+              <div className="text-center text-neutral-600 py-8">
+                No has creado ninguna alerta aún.
+              </div>
+            )}
+
+            {!myAlertsLoading && !myAlertsError && myAlerts.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 border border-neutral-200"
+                  >
+                    {/* Categoría y Scope */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="inline-block bg-red-100 text-red-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        {alert.category.category_name}
+                      </span>
+                      <span
+                        className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
+                          alert.scope === "global"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {alert.scope === "global" ? "Global" : "Departamental"}
+                      </span>
+                    </div>
+
+                    {/* Título */}
+                    <h3 className="text-[18px] font-bold font-[Outfit] text-neutral-900 mb-2">
+                      {alert.alert_title}
+                    </h3>
+
+                    {/* Descripción */}
+                    <p className="text-neutral-700 font-[Inter] text-sm leading-relaxed mb-4 line-clamp-3">
+                      {alert.alert_message}
+                    </p>
+
+                    {/* Departamento (si aplica) */}
+                    {alert.department_name && (
+                      <p className="text-xs text-neutral-500 mb-3">
+                        📍 Departamento: {alert.department_name}
+                      </p>
+                    )}
+
+                    {/* Imágenes */}
+                    {alert.images && alert.images.length > 0 && (
+                      <div
+                        className={`mt-4 ${
+                          alert.images.length === 1
+                            ? ""
+                            : "grid grid-cols-2 gap-2"
+                        }`}
+                      >
+                        {alert.images.map((img, index) => (
+                          <img
+                            key={index}
+                            src={img.image}
+                            alt={`alert-image-${index + 1}`}
+                            className={`w-full ${
+                              alert.images.length === 1 ? "h-40" : "h-32"
+                            } object-cover rounded-md`}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Fecha de creación */}
+                    <p className="text-xs text-neutral-400 mt-4">
+                      Creada: {new Date(alert.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </section>

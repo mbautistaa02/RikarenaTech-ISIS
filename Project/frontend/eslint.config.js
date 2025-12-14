@@ -20,13 +20,13 @@ export default tseslint.config(
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "module",
+      sourceType: "commonjs",
       globals: globals.browser,
       parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: { jsx: true },
-        project: ["./tsconfig.app.json", "./tsconfig.node.json"],
-        tsconfigRootDir,
+        tsconfigRootDir: tsconfigRootDir,
+        project: ["./tsconfig.app.json", "./tsconfig.node.json", "./tsconfig.json"],
       },
     },
     settings: {
