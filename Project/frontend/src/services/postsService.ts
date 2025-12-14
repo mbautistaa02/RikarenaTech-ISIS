@@ -14,6 +14,10 @@ type MarketplaceParams = {
   search?: string;
   category?: number;
   ordering?: string;
+  municipality?: number;
+  department?: number;
+  minPrice?: number | string;
+  maxPrice?: number | string;
 };
 
 export const getMarketplacePosts = (
@@ -24,6 +28,13 @@ export const getMarketplacePosts = (
   if (params.search) query.set("search", params.search);
   if (params.category) query.set("category", String(params.category));
   if (params.ordering) query.set("ordering", params.ordering);
+  if (params.municipality)
+    query.set("municipality", String(params.municipality));
+  if (params.department) query.set("department", String(params.department));
+  if (params.minPrice !== undefined && params.minPrice !== null)
+    query.set("min_price", String(params.minPrice));
+  if (params.maxPrice !== undefined && params.maxPrice !== null)
+    query.set("max_price", String(params.maxPrice));
 
   const qs = query.toString();
   const path = `/posts/marketplace/${qs ? `?${qs}` : ""}`;

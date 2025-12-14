@@ -27,6 +27,7 @@ type FormErrors = {
 export const Profile: React.FC = () => {
   const [myInfo, setMyInfo] = useState<CurrentUser | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoaded, setDepartmentsLoaded] = useState(false);
   const [form, setForm] = useState<FormState>({
     username: "",
     bio: "",
@@ -151,6 +152,10 @@ export const Profile: React.FC = () => {
           showToast("error", "No pudimos cargar los departamentos.");
           setDepartments([]);
         }
+      } finally {
+        if (!controller.signal.aborted) {
+          setDepartmentsLoaded(true);
+        }
       }
     };
 
@@ -159,6 +164,8 @@ export const Profile: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!departmentsLoaded) return;
+
     if (!form.departmentId && form.municipalityId) {
       setForm((prev) => ({ ...prev, municipalityId: "" }));
       return;
@@ -166,11 +173,17 @@ export const Profile: React.FC = () => {
 
     if (
       form.municipalityId &&
+      municipalities.length > 0 &&
       !municipalities.some((mun) => mun.id === form.municipalityId)
     ) {
       setForm((prev) => ({ ...prev, municipalityId: "" }));
     }
-  }, [form.departmentId, form.municipalityId, municipalities]);
+  }, [
+    departmentsLoaded,
+    form.departmentId,
+    form.municipalityId,
+    municipalities,
+  ]);
 
   // Re-validate when form changes (but only if validation has been triggered)
   useEffect(() => {
