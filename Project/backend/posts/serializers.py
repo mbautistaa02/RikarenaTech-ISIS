@@ -252,9 +252,7 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
         # Get images from request FILES
-        images = request.FILES.getlist("images") or request.FILES.getlist(
-            "images[]"
-        )
+        images = request.FILES.getlist("images") or request.FILES.getlist("images[]")
 
         # Validate image count
         if len(images) > settings.MAX_IMAGES_PER_POST:
@@ -290,7 +288,9 @@ class PostCreateUpdateSerializer(serializers.ModelSerializer):
             if request is not None:
                 from django.conf import settings
 
-                images = request.FILES.getlist("images") or request.FILES.getlist("images[]")
+                images = request.FILES.getlist("images") or request.FILES.getlist(
+                    "images[]"
+                )
                 if images:
                     # Enforce maximum images per post
                     existing_count = instance.images.count()
