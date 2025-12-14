@@ -109,6 +109,7 @@ export default function EditCrop() {
               `La descripción es muy larga (${notesWordCount} palabras). Máximo permitido: ${NOTES_MAX_WORDS} palabras.`,
             );
             return;
+          }
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -477,7 +478,7 @@ export default function EditCrop() {
                   className={`text-sm ${notesExceeded ? "text-red-600" : "text-neutral-500"}`}
                 >
                   {notesExceeded
-                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).` 
+                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).`
                     : `${notesWordCount} palabra(s)`}
                 </small>
                 {notesExceeded && (

@@ -309,24 +309,36 @@ export default function CreateCrop() {
               </label>
               <div>
                 <input
-                type="text"
-                name="crop_type"
-                value={form.crop_type}
-                onChange={handleInputChange}
-                placeholder="Ej: Cultivo hidropónico"
-                className="
-                w-full h-[49px] px-3
-                font-[Inter] text-sm
-                bg-neutral-200/10 border border-neutral-300 rounded-md
-                hover:border-neutral-300
-                focus:outline-none focus:ring-2 focus:ring-neutral-300/30
-              "
-              />
+                  type="text"
+                  name="crop_type"
+                  value={form.crop_type}
+                  onChange={handleInputChange}
+                  placeholder="Ej: Cultivo hidropónico"
+                  className="
+                    w-full h-[49px] px-3
+                    font-[Inter] text-sm
+                    bg-neutral-200/10 border border-neutral-300 rounded-md
+                    hover:border-neutral-300
+                    focus:outline-none focus:ring-2 focus:ring-neutral-300/30
+                  "
+                />
+
                 <div className="flex items-center justify-between mt-1">
-                  <small className={`text-sm ${cropTypeExceeded ? "text-red-600" : "text-neutral-500"}`}>
-                    {cropTypeExceeded ? `Tipo muy largo (máx ${CROP_TYPE_MAX_WORDS} palabras).` : `${cropTypeWordCount} palabra(s)`}
+                  <small
+                    className={
+                      `text-sm ${cropTypeExceeded ? "text-red-600" : "text-neutral-500"}`
+                    }
+                  >
+                    {cropTypeExceeded
+                      ? `Tipo muy largo (máx ${CROP_TYPE_MAX_WORDS} palabras).`
+                      : `${cropTypeWordCount} palabra(s)`}
                   </small>
-                  {cropTypeExceeded && <small className="text-red-600 text-sm">Por favor reduzca el tipo de cultivo.</small>}
+
+                  {cropTypeExceeded && (
+                    <small className="text-red-600 text-sm">
+                      Por favor reduzca el tipo de cultivo.
+                    </small>
+                  )}
                 </div>
               </div>
             </div>
@@ -437,7 +449,7 @@ export default function CreateCrop() {
                   className={`text-sm ${notesExceeded ? "text-red-600" : "text-neutral-500"}`}
                 >
                   {notesExceeded
-                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).` 
+                    ? `Descripción muy larga (máx ${NOTES_MAX_WORDS} palabras).`
                     : `${notesWordCount} palabra(s)`}
                 </small>
                 {notesExceeded && (
