@@ -244,6 +244,8 @@ export function EditPost() {
                 onDragEnter={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
               >
                 {item.images && item.images.length > 0 ? (
                   <img
