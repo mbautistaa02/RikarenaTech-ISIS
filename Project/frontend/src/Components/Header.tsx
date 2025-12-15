@@ -54,6 +54,8 @@ export const Header: React.FC = () => {
             );
             setIsModerator(hasModerator);
           }
+          // Fetch alerts since user is authenticated
+          fetchAlerts();
         } else {
           setIsAuthenticated(false);
           setIsModerator(false);
@@ -107,7 +109,6 @@ export const Header: React.FC = () => {
     };
 
     fetchUserData();
-    fetchAlerts();
 
     const onResize = () => {
       if (window.innerWidth >= 1024) setMenuOpen(false);
